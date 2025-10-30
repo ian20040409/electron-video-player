@@ -9,9 +9,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "video.js": "^8.5.3"
+    "video.js": "^8.23.4"
   },
   "devDependencies": {
-    "electron": "^30.0.2"
+    "electron": "^39.0.0"
   }
 }

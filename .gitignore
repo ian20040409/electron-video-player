@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Electron runtime binaries
+node_modules/electron/dist/electron.exe
+node_modules/electron/dist/electron
+node_modules/electron/dist/Electron.app/
+node_modules/electron/dist/chrome-sandbox
+
+# Build artifacts
+dist/
+out/
+build/
+releases/
+*.asar
+*.asar.unpacked/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Environment files
+.env
+.env.*.local
+
+# Caches/temp
+.cache/
+tmp/
+temp/
+
+# Coverage
+coverage/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
