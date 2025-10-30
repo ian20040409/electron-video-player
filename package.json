@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron ."
   },
-  "author": "",
+  "author": "LNU",
   "license": "MIT",
   "dependencies": {
     "video.js": "^8.23.4"

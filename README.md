@@ -88,4 +88,5 @@ Notes on HLS (m3u8):
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
+
