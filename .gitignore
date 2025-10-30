@@ -1,39 +1,42 @@
 # Dependencies
 node_modules/
 
-# Electron runtime binaries
-node_modules/electron/dist/electron.exe
-node_modules/electron/dist/electron
-node_modules/electron/dist/Electron.app/
-node_modules/electron/dist/chrome-sandbox
-
-# Build artifacts
+# Build outputs
 dist/
-out/
 build/
-releases/
+out/
+release/
 *.asar
-*.asar.unpacked/
 
-# Logs
+# Platform artifacts
+.DS_Store
+Thumbs.db
+
+# Logs and diagnostics
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-*.log
 
 # Environment files
 .env
-.env.*.local
+.env.*
 
-# Caches/temp
-.cache/
-tmp/
-temp/
+# Electron packaging artifacts
+*.app
+*.exe
+*.dmg
+*.msi
+*.AppImage
+*.snap
+*.deb
+*.rpm
+*.zip
+*.tar.gz
+*.tgz
 
-# Coverage
-coverage/
+# Misc caches
+.npm
+.cache
 
-# OS-generated files
-.DS_Store
-Thumbs.db
