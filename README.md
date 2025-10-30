@@ -1,6 +1,6 @@
 ﻿# Electron Video Player
 
-Lightweight Electron desktop player powered by [Video.js](https://videojs.com/) for local files and internet URLs (MP4, HLS/m3u8). Minimal chrome, auto–scaling video, clean dark/light themes, and a subtle ambient glow.
+Lightweight Electron desktop player powered by [videojs](https://videojs.com/) for local files and internet URLs (MP4, HLS/m3u8). Minimal chrome, auto–scaling video, clean dark/light themes, and a subtle ambient glow.
 
 ## Features
 
