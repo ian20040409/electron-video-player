@@ -219,6 +219,15 @@ player.on('play', () => { scheduleHeaderHide(); ambientVideo?.play?.().catch(()=
 player.on('pause', () => { document.body.classList.remove('header-hidden'); ambientVideo?.pause?.(); });
 player.on('ended', () => { document.body.classList.remove('header-hidden'); ambientVideo?.pause?.(); });
 
+player.on('fullscreenchange', () => {
+  const isFs = player.isFullscreen && player.isFullscreen();
+  document.body.classList.toggle('is-fullscreen', !!isFs);
+  if (!isFs) {
+    document.body.classList.remove('header-hidden');
+  }
+  scheduleHeaderHide();
+});
+
 // --- Ambient overlay: mirror the playing video with blur
 function rewireAmbientWhenReady() {
   const wire = () => wireAmbientToPlayer();
