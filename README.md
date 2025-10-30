@@ -49,13 +49,13 @@ npm start
 ## Screenshots
 
 <p align="center">
-  <a href="https://imgbox.com/Fua6YgdD" target="_blank">
-    <img src="https://images2.imgbox.com/42/62/Fua6YgdD_o.png" alt="image host" />
-  </a>
-  &nbsp;
-<a
-  href="https://imgbox.com/aF2dBgXQ" target="_blank"><img src="https://images2.imgbox.com/01/84/aF2dBgXQ_o.jpg" alt="image host"/>
-</a>
+
+<a href="https://imgbox.com/3I3vHj7L" target="_blank"><img src="https://images2.imgbox.com/3f/fd/3I3vHj7L_o.png" alt="image host"/></a>
+
+&nbsp;
+<a href="https://imgbox.com/zSR1aYTk" target="_blank"><img src="https://images2.imgbox.com/95/2b/zSR1aYTk_o.png" alt="image host"/></a>
+
+
 
 </p>
 
