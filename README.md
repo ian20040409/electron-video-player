@@ -46,6 +46,19 @@ electron_mirror=https://npmmirror.com/mirrors/electron/
 ```
 npm start
 ```
+## Screenshots
+
+<p align="center">
+  <a href="https://imgbox.com/Fua6YgdD" target="_blank">
+    <img src="https://images2.imgbox.com/42/62/Fua6YgdD_o.png" alt="image host" />
+  </a>
+  &nbsp;
+<a
+  href="https://imgbox.com/aF2dBgXQ" target="_blank"><img src="https://images2.imgbox.com/01/84/aF2dBgXQ_o.jpg" alt="image host"/>
+</a>
+
+</p>
+
 
 ## Usage
 
