@@ -59,6 +59,8 @@ function buildSourceForUrl(u) {
 function loadVideo({ fileUrl, fileName }) {
   fileNameLabel.textContent = fileName || 'Unknown file';
 
+  teardownAmbient();
+
   const source = {
     src: fileUrl,
     type: guessMimeType(fileName),
@@ -72,14 +74,13 @@ function loadVideo({ fileUrl, fileName }) {
     // Recompute sizing when metadata is available
     try { player.one('loadedmetadata', () => { try { player.resize(); } catch {} }); } catch {}
   });
+  rewireAmbientWhenReady();
 
   // Switch UI to player view
   document.body.classList.add('has-video');
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
   // Start header auto-hide timer once we have a video
   scheduleHeaderHide();
-  // Wire ambient overlay to the current video
-  wireAmbientToPlayer();
   // Update OS window title
   if (window.electronAPI?.setTitle) {
     window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
@@ -114,15 +115,16 @@ function playFromUrlInput() {
   const fileName = value.split(/[\/]/).pop() || value;
   const source = buildSourceForUrl(value);
   fileNameLabel.textContent = fileName;
+  teardownAmbient();
   player.src(source);
   player.ready(() => {
     player.play().catch(() => {});
   });
+  rewireAmbientWhenReady();
 
   document.body.classList.add('has-video');
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
   scheduleHeaderHide();
-  wireAmbientToPlayer();
   if (window.electronAPI?.setTitle) {
     window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
   }
@@ -218,6 +220,22 @@ player.on('pause', () => { document.body.classList.remove('header-hidden'); ambi
 player.on('ended', () => { document.body.classList.remove('header-hidden'); ambientVideo?.pause?.(); });
 
 // --- Ambient overlay: mirror the playing video with blur
+function rewireAmbientWhenReady() {
+  const wire = () => wireAmbientToPlayer();
+  try {
+    player.one('loadedmetadata', wire);
+  } catch {
+    player.one('loadedmetadata', wire);
+  }
+  setTimeout(() => {
+    try {
+      if (player.readyState && player.readyState() >= 1) {
+        wire();
+      }
+    } catch {}
+  }, 0);
+}
+
 function wireAmbientToPlayer() {
   if (!ambientVideo) return;
   try {
@@ -245,6 +263,10 @@ function wireAmbientToPlayer() {
 function teardownAmbient() {
   if (!ambientVideo) return;
   try {
+    const tracks = ambientVideo.srcObject?.getTracks?.();
+    if (tracks && Array.isArray(tracks)) {
+      tracks.forEach((track) => track.stop?.());
+    }
     ambientVideo.pause();
     ambientVideo.removeAttribute('src');
     ambientVideo.srcObject = null;
