@@ -1,0 +1,17 @@
+{
+  "name": "electron-video-player",
+  "version": "0.1.0",
+  "description": "Electron-based video.js player for playing local video files.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "video.js": "^8.5.3"
+  },
+  "devDependencies": {
+    "electron": "^30.0.2"
+  }
+}

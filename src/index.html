@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Electron Video Player</title>
+    <link
+      rel="stylesheet"
+      href="../node_modules/video.js/dist/video-js.css"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Electron Video Player</h1>
+      <div class="actions">
+        <button id="open-file">Open Video…</button>
+        <span id="file-name" class="file-name">No file selected</span>
+      </div>
+    </header>
+    <main>
+      <video
+        id="video-player"
+        class="video-js vjs-default-skin"
+        controls
+        preload="auto"
+        data-setup="{}"
+      ></video>
+    </main>
+
+    <script src="../node_modules/video.js/dist/video.min.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
