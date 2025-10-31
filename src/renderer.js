@@ -19,12 +19,32 @@ const backBtn = document.getElementById('back-btn');
 const headerEl = document.querySelector('.app-header');
 const ambientVideo = document.getElementById('ambient-video');
 const themeToggle = document.getElementById('theme-toggle');
+const appOrigin = (() => {
+  try {
+    if (window?.location?.protocol?.startsWith('http')) {
+      return `${window.location.protocol}//${window.location.host}`;
+    }
+  } catch {}
+  return 'https://localhost';
+})();
+
 const player = videojs('video-player', {
   fill: true,
   fluid: false,
   autoplay: false,
   controls: true,
   preload: 'auto',
+  techOrder: ['html5', 'youtube'],
+  youtube: {
+    iv_load_policy: 3,
+    modestbranding: 1,
+    rel: 0,
+    playsinline: 1,
+    enablePrivacyEnhancedMode: true,
+    customVars: {
+      origin: appOrigin,
+    },
+  },
   playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
   controlBar: {
     playbackRateMenuButton: true,
@@ -55,11 +75,81 @@ function isHlsUrl(u) {
   }
 }
 
+function isYouTubeUrl(u) {
+  try {
+    const url = new URL(u);
+    const host = url.hostname.toLowerCase();
+    return host === 'youtu.be'
+      || host.endsWith('.youtube.com')
+      || host === 'youtube.com'
+      || host === 'youtube-nocookie.com'
+      || host.endsWith('.youtube-nocookie.com');
+  } catch {
+    return false;
+  }
+}
+
+function extractYouTubeId(u) {
+  try {
+    const url = new URL(u);
+    const host = url.hostname.toLowerCase();
+    if (host === 'youtu.be') {
+      return url.pathname.replace(/^\//, '').split('/')[0] || null;
+    }
+    if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+      if (url.pathname.startsWith('/watch')) {
+        return url.searchParams.get('v');
+      }
+      if (url.pathname.startsWith('/embed/') || url.pathname.startsWith('/shorts/')) {
+        return url.pathname.split('/')[2] || null;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeYouTubeUrl(u) {
+  try {
+    const url = new URL(u);
+    url.protocol = 'https:';
+    if (url.hostname.toLowerCase() === 'youtu.be') {
+      const id = url.pathname.replace(/^\//, '').split('/')[0];
+      if (id) {
+        const params = new URLSearchParams(url.search);
+        const suffix = params.toString();
+        return `https://www.youtube.com/watch?v=${id}${suffix ? `&${suffix}` : ''}`;
+      }
+    }
+    return url.toString();
+  } catch {
+    return u;
+  }
+}
+
 function buildSourceForUrl(u) {
+  if (isYouTubeUrl(u)) {
+    const normalized = normalizeYouTubeUrl(u);
+    return { src: normalized, type: 'video/youtube' };
+  }
+
+  const lower = (typeof u === 'string') ? u.toLowerCase() : '';
   const type = isHlsUrl(u)
     ? 'application/x-mpegURL'
-    : (u.toLowerCase().endsWith('.mp4') ? 'video/mp4' : undefined);
+    : (lower.endsWith('.mp4') ? 'video/mp4' : undefined);
   return { src: u, type };
+}
+
+function formatSourceLabel(source, fallback) {
+  if (!source) {
+    return fallback || 'Unknown source';
+  }
+  if (source.type === 'video/youtube') {
+    const id = extractYouTubeId(source.src || '') || '';
+    return id ? `YouTube (${id})` : 'YouTube Video';
+  }
+  return fallback || source.src || 'Unknown source';
 }
 
 function loadVideo({ fileUrl, fileName }) {
@@ -121,9 +211,10 @@ function playFromUrlInput() {
   } catch {
     return;
   }
-  const fileName = value.split(/[\/]/).pop() || value;
   const source = buildSourceForUrl(value);
-  fileNameLabel.textContent = fileName;
+  const fallbackLabel = value.split(/[\/]/).pop() || value;
+  const label = formatSourceLabel(source, fallbackLabel);
+  fileNameLabel.textContent = label;
   teardownAmbient();
   player.src(source);
   player.ready(() => {
@@ -135,7 +226,7 @@ function playFromUrlInput() {
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
   scheduleHeaderHide();
   if (window.electronAPI?.setTitle) {
-    window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
+    window.electronAPI.setTitle(`${label} - Electron Video Player`);
   }
 }
 
@@ -225,7 +316,7 @@ themeToggle.addEventListener('click', () => {
 // --- Drag and Drop --- 
 const dragOverlay = document.getElementById('drag-overlay');
 
-function processDropEvent(e) {
+async function processDropEvent(e) {
   // Always take ownership of the drop to prevent OS default handlers (e.g., Windows Media Player)
   e.preventDefault();
   e.stopPropagation();
@@ -244,7 +335,7 @@ function processDropEvent(e) {
     const filePath = (file && file.path) ? file.path : '';
     if (filePath) {
       let fileUrl = null;
-      try { fileUrl = window.electronAPI?.toFileUrl?.(filePath) || null; } catch {}
+      try { fileUrl = await window.electronAPI?.toFileUrl?.(filePath); } catch {}
       if (!fileUrl) {
         // Fallback: best-effort encoding for non-ASCII paths
         const raw = 'file:///' + filePath.replace(/\\/g, '/');
@@ -264,7 +355,7 @@ function processDropEvent(e) {
         const f = item.getAsFile && item.getAsFile();
         if (f && f.path) {
           let fileUrl = null;
-          try { fileUrl = window.electronAPI?.toFileUrl?.(f.path) || null; } catch {}
+          try { fileUrl = await window.electronAPI?.toFileUrl?.(f.path); } catch {}
           if (!fileUrl) {
             const raw = 'file:///' + f.path.replace(/\\/g, '/');
             fileUrl = encodeURI(raw);
@@ -291,9 +382,10 @@ function processDropEvent(e) {
       }
       if (/^https?:\/\//i.test(val)) {
         const source = buildSourceForUrl(val);
-        const fileName = val.split(/[\\/]/).pop() || val;
+        const fallbackLabel = val.split(/[\\/]/).pop() || val;
+        const label = formatSourceLabel(source, fallbackLabel);
         try { console.debug('[drop] http(s) url:', val); } catch {}
-        fileNameLabel.textContent = fileName;
+        fileNameLabel.textContent = label;
         teardownAmbient();
         player.src(source);
         player.ready(() => { player.play().catch(() => {}); });
@@ -302,7 +394,7 @@ function processDropEvent(e) {
         if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
         scheduleHeaderHide();
         if (window.electronAPI?.setTitle) {
-          window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
+          window.electronAPI.setTitle(`${label} - Electron Video Player`);
         }
         return true;
       }
@@ -383,6 +475,17 @@ player.on('fullscreenchange', () => {
 
 // --- Ambient overlay: mirror the playing video with blur
 function rewireAmbientWhenReady() {
+  try {
+    const currentType = player.currentType?.();
+    if (currentType === 'video/youtube') {
+      return;
+    }
+    const srcType = player.currentSource?.()?.type;
+    if (srcType === 'video/youtube') {
+      return;
+    }
+  } catch {}
+
   const wire = () => wireAmbientToPlayer();
   try {
     player.one('loadedmetadata', wire);
@@ -400,6 +503,12 @@ function rewireAmbientWhenReady() {
 
 function wireAmbientToPlayer() {
   if (!ambientVideo) return;
+  try {
+    const type = player.currentType?.();
+    if (type === 'video/youtube') {
+      return;
+    }
+  } catch {}
   try {
     const videoEl = player?.el()?.querySelector('video');
     if (!videoEl) return;

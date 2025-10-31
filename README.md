@@ -1,17 +1,23 @@
 # Electron Video Player
 
-Lightweight Electron desktop player powered by [videojs](https://videojs.com/) for local files and internet URLs (MP4, HLS/m3u8). 
+Lightweight Electron desktop player powered by [videojs](https://videojs.com/) for local files and internet URLs (MP4, HLS/m3u8, YouTube). 
 
 ## Features
 
 - Welcome screen with Open File and Play from URL
-- URL playback for `mp4` and `m3u8` (HLS)
+- URL playback for `mp4`, `m3u8` (HLS), and YouTube links
 - Auto–scales video (keeps aspect; upscales low‑res sources)
 - Dynamic ambient background (blurred, mirrored overlay)
 - Header auto‑hide during playback; reappears on interaction
 - Back button (return to welcome), theme toggle (dark/light)
 - Keyboard shortcuts for seek, volume, speed, fullscreen, open
 - OS window title shows the current filename
+
+### YouTube Streaming
+
+- Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window—playback uses the official iframe tech via `videojs-youtube`.
+- The app serves itself from a localhost origin so embeds pass YouTube’s security checks. No data is proxied: the iframe talks directly to YouTube.
+- Privacy‑enhanced mode (`youtube-nocookie.com`) is enabled and the ambient mirror backdrop automatically disables for iframe sources.
 
 ## Prerequisites
 
@@ -62,13 +68,14 @@ npm start
 ## Usage
 
 - Open local file: click “Open Video” on the welcome screen or press `O`.
-- Play URL: paste an `http(s)` URL (MP4 or `.m3u8`) and click “Play URL” or press Enter. On the welcome screen, press `L` to focus the URL box.
+- Play URL: paste an `http(s)` URL (MP4, `.m3u8`, or a YouTube link) and click “Play URL” or press Enter. On the welcome screen, press `L` to focus the URL box.
 - Back: click Back in the header to return to welcome.
 - Theme: click the moon/sun icon to toggle dark/light.
 - Maximize: when the window is maximized, the player is slightly reduced to showcase more ambient glow.
 
-Notes on HLS (m3u8):
+Notes on streaming:
 - Remote servers must allow CORS for the manifest and segment requests; otherwise playback may fail. Check DevTools network errors if a stream does not load.
+- YouTube playback is powered by the official iframe API (via `videojs-youtube`). The app now serves its UI from a local HTTP origin so YouTube embeds initialise correctly, disables the ambient mirror backdrop for those sources, and still respects the same CSP.
 
 ## Keyboard Shortcuts
 
@@ -101,4 +108,3 @@ Notes on HLS (m3u8):
 ## License
 
 MIT — see [LICENSE](LICENSE)
-

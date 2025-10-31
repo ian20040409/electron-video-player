@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' blob: file: http: https:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https://*.ytimg.com; media-src 'self' blob: file: http: https:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com; child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com; object-src 'none'; base-uri 'self'">
     <title> </title>
     <link
       rel="stylesheet"
@@ -57,7 +57,7 @@
             </button>
             <div class="or">or</div>
             <div class="welcome-input-group">
-              <input id="url-input" class="welcome-input" type="text" placeholder="Paste URL (mp4, m3u8)" aria-label="Video URL" />
+              <input id="url-input" class="welcome-input" type="text" placeholder="Paste URL (mp4, m3u8, YouTube)" aria-label="Video URL" />
               <button id="url-paste" class="btn btn-ghost paste-btn" type="button" title="Paste from clipboard">
                 <span class="btn-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -106,6 +106,7 @@
     </div>
 
     <script src="../node_modules/video.js/dist/video.min.js"></script>
+    <script src="../node_modules/videojs-youtube/dist/Youtube.min.js"></script>
     <script src="./renderer.js"></script>
   </body>
   </html>

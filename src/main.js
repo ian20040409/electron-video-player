@@ -2,9 +2,172 @@ const { app, BrowserWindow, dialog, ipcMain, shell, Menu, session } = require('e
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL, fileURLToPath } = require('url');
+const http = require('http');
 
 // Keep a global reference to the main window to avoid GC closing it.
 let mainWindow;
+let staticServer;
+let staticServerPort;
+
+const ROOT_DIR = path.resolve(__dirname, '..');
+const MIME_BY_EXT = {
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.m3u8': 'application/x-mpegURL',
+  '.ts': 'video/mp2t',
+  '.m4a': 'audio/mp4',
+};
+
+function guessMimeForPath(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_BY_EXT[ext] || 'application/octet-stream';
+}
+
+async function ensureStaticServer() {
+  if (staticServerPort) {
+    return staticServerPort;
+  }
+
+  staticServer = http.createServer((req, res) => {
+    try {
+      const requestUrl = new URL(req.url, 'http://127.0.0.1');
+      let pathname = decodeURIComponent(requestUrl.pathname);
+      if (!pathname || pathname === '/') {
+        pathname = '/src/index.html';
+      } else if (pathname.endsWith('/')) {
+        pathname += 'index.html';
+      }
+
+      if (pathname.startsWith('/__file')) {
+        const targetPath = requestUrl.searchParams.get('p') || '';
+        if (!targetPath || !path.isAbsolute(targetPath)) {
+          res.writeHead(400);
+          res.end('Missing path');
+          return;
+        }
+
+        fs.stat(targetPath, (statErr, stats) => {
+          if (statErr || !stats.isFile()) {
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+          }
+
+          const total = stats.size;
+          const rangeHeader = req.headers.range;
+          res.setHeader('Accept-Ranges', 'bytes');
+          const contentType = guessMimeForPath(targetPath);
+
+          if (req.method === 'HEAD') {
+            res.writeHead(200, {
+              'Content-Length': total,
+              'Content-Type': contentType,
+            });
+            res.end();
+            return;
+          }
+
+          if (rangeHeader) {
+            const rangeMatch = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+            if (rangeMatch) {
+              let start = rangeMatch[1] ? parseInt(rangeMatch[1], 10) : 0;
+              let end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : total - 1;
+              if (Number.isNaN(start)) start = 0;
+              if (Number.isNaN(end) || end >= total) end = total - 1;
+              if (start > end) {
+                res.writeHead(416, {
+                  'Content-Range': `bytes */${total}`,
+                });
+                res.end();
+                return;
+              }
+              res.writeHead(206, {
+                'Content-Range': `bytes ${start}-${end}/${total}`,
+                'Content-Length': end - start + 1,
+                'Content-Type': contentType,
+              });
+              const stream = fs.createReadStream(targetPath, { start, end });
+              stream.on('error', () => {
+                if (!res.headersSent) {
+                  res.writeHead(500);
+                }
+                res.end();
+              });
+              stream.pipe(res);
+              return;
+            }
+          }
+
+          res.writeHead(200, {
+            'Content-Length': total,
+            'Content-Type': contentType,
+          });
+          const stream = fs.createReadStream(targetPath);
+          stream.on('error', () => {
+            if (!res.headersSent) {
+              res.writeHead(500);
+            }
+            res.end();
+          });
+          stream.pipe(res);
+        });
+        return;
+      }
+
+      const filePath = path.join(ROOT_DIR, pathname.replace(/^\//, ''));
+      if (!filePath.startsWith(ROOT_DIR)) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+      }
+
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          if (err.code === 'ENOENT') {
+            res.writeHead(404);
+            res.end('Not found');
+          } else {
+            res.writeHead(500);
+            res.end('Server error');
+          }
+          return;
+        }
+        res.setHeader('Content-Type', guessMimeForPath(filePath));
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(data);
+      });
+    } catch (error) {
+      res.writeHead(500);
+      res.end('Server error');
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    staticServer.listen(0, '127.0.0.1', () => {
+      const addressInfo = staticServer.address();
+      staticServerPort = addressInfo && addressInfo.port;
+      resolve();
+    });
+    staticServer.on('error', reject);
+  });
+
+  return staticServerPort;
+}
 
 const VIDEO_EXTS = new Set(['mp4','m4v','mov','webm','mkv','avi','wmv','flv']);
 
@@ -14,11 +177,12 @@ function isVideoFile(p) {
   return VIDEO_EXTS.has(ext);
 }
 
-function sendVideoToRenderer(filePath) {
+async function sendVideoToRenderer(filePath) {
   if (!filePath) return;
   const payload = {
-    fileUrl: pathToFileURL(filePath).toString(),
+    fileUrl: await buildServedFileUrl(filePath),
     fileName: path.basename(filePath),
+    localPath: filePath,
   };
   if (!mainWindow) return;
   const send = () => { try { mainWindow.webContents.send('video:selected', payload); } catch {} };
@@ -29,12 +193,37 @@ function sendVideoToRenderer(filePath) {
   }
 }
 
-function resolveHtmlPath() {
-  // Load local index.html in development and production.
-  return path.join(__dirname, 'index.html');
+async function resolveEntryUrl() {
+  try {
+    const port = await ensureStaticServer();
+    return `http://127.0.0.1:${port}/src/index.html`;
+  } catch (error) {
+    // Fallback to file protocol if the server fails (e.g., permissions)
+    return path.join(__dirname, 'index.html');
+  }
 }
 
-function createMainWindow() {
+async function buildServedFileUrl(absolutePath) {
+  if (!absolutePath || typeof absolutePath !== 'string') {
+    return null;
+  }
+  try {
+    const port = await ensureStaticServer();
+    if (port) {
+      const origin = `http://127.0.0.1:${port}`;
+      const url = new URL('/__file', origin);
+      url.searchParams.set('p', absolutePath);
+      return url.toString();
+    }
+  } catch {}
+  try {
+    return pathToFileURL(absolutePath).toString();
+  } catch {
+    return null;
+  }
+}
+
+async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1024,
     height: 720,
@@ -48,7 +237,12 @@ function createMainWindow() {
     },
   });
 
-  mainWindow.loadFile(resolveHtmlPath());
+  const entryUrl = await resolveEntryUrl();
+  if (entryUrl.startsWith('http')) {
+    mainWindow.loadURL(entryUrl);
+  } else {
+    mainWindow.loadFile(entryUrl);
+  }
   mainWindow.setTitle('Electron Video Player');
 
   // Intercept navigation attempts (e.g., file drops that try to navigate)
@@ -101,8 +295,9 @@ async function handleOpenVideoDialog() {
   const absolutePath = filePaths[0];
 
   return {
-    fileUrl: pathToFileURL(absolutePath).toString(),
+    fileUrl: await buildServedFileUrl(absolutePath),
     fileName: path.basename(absolutePath),
+    localPath: absolutePath,
   };
 }
 
@@ -111,7 +306,7 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', (_event, argv, _cwd) => {
+  app.on('second-instance', async (_event, argv, _cwd) => {
     try {
       if (!mainWindow) return;
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -124,7 +319,7 @@ if (!gotLock) {
         // Strip quotes if any
         const fp = p.replace(/^"|"$/g, '');
         if (isVideoFile(fp) && fs.existsSync(fp)) {
-          sendVideoToRenderer(fp);
+          await sendVideoToRenderer(fp);
           break;
         }
       }
@@ -132,7 +327,7 @@ if (!gotLock) {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Hide the default Electron application menu (File/Edit/View...)
   Menu.setApplicationMenu(null);
 
@@ -140,29 +335,48 @@ app.whenReady().then(() => {
   try {
     const csp = [
       "default-src 'self'",
-      "script-src 'self'",
+      "script-src 'self' https://www.youtube.com https://s.ytimg.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: file:",
+      "img-src 'self' data: blob: file: https://*.ytimg.com",
       "media-src 'self' blob: file: http: https:",
       "font-src 'self' data:",
       "connect-src 'self'",
       "worker-src 'self' blob:",
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com",
+      "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com",
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
     ].join('; ');
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      const headers = details.responseHeaders || {};
-      headers['Content-Security-Policy'] = [csp];
-      callback({ responseHeaders: headers });
+      try {
+        const requestUrl = details.url || '';
+        const isLocal = requestUrl.startsWith('file://')
+          || requestUrl.startsWith('app://')
+          || requestUrl.startsWith('http://127.0.0.1:')
+          || requestUrl.startsWith('http://localhost:');
+        if (!isLocal) {
+          callback({ responseHeaders: details.responseHeaders });
+          return;
+        }
+
+        // Only enforce our CSP on local app assets so we don't clobber
+        // third-party responses (e.g., YouTube iframe) that ship their own policies.
+        const headers = details.responseHeaders || {};
+        headers['Content-Security-Policy'] = [csp];
+        callback({ responseHeaders: headers });
+      } catch (error) {
+        callback({ responseHeaders: details.responseHeaders });
+      }
     });
   } catch {}
 
-  createMainWindow();
+  await createMainWindow();
 
   try { if (process.platform === 'win32') app.setAppUserModelId('com.lnu.electronvideoplayer'); } catch {}
 
   ipcMain.handle('dialog:open-video', handleOpenVideoDialog);
+  ipcMain.handle('local-file-url', async (_event, absolutePath) => buildServedFileUrl(absolutePath));
   // Notify renderer when window is maximized/unmaximized
   mainWindow.on('maximize', () => {
     if (mainWindow) mainWindow.webContents.send('window:maximized', true);
@@ -191,10 +405,16 @@ app.whenReady().then(() => {
       if (!p || p === '.' || p.startsWith('--')) continue;
       const fp = p.replace(/^"|"$/g, '');
       if (isVideoFile(fp) && fs.existsSync(fp)) {
-        sendVideoToRenderer(fp);
+        await sendVideoToRenderer(fp);
         break;
       }
     }
+  } catch {}
+});
+
+app.on('will-quit', () => {
+  try {
+    staticServer?.close?.();
   } catch {}
 });
 
