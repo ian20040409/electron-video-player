@@ -1,9 +1,33 @@
 const { app, BrowserWindow, dialog, ipcMain, shell, Menu, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { pathToFileURL, fileURLToPath } = require('url');
 
 // Keep a global reference to the main window to avoid GC closing it.
 let mainWindow;
+
+const VIDEO_EXTS = new Set(['mp4','m4v','mov','webm','mkv','avi','wmv','flv']);
+
+function isVideoFile(p) {
+  if (!p || typeof p !== 'string') return false;
+  const ext = path.extname(p).replace(/^\./,'').toLowerCase();
+  return VIDEO_EXTS.has(ext);
+}
+
+function sendVideoToRenderer(filePath) {
+  if (!filePath) return;
+  const payload = {
+    fileUrl: pathToFileURL(filePath).toString(),
+    fileName: path.basename(filePath),
+  };
+  if (!mainWindow) return;
+  const send = () => { try { mainWindow.webContents.send('video:selected', payload); } catch {} };
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once('did-finish-load', send);
+  } else {
+    send();
+  }
+}
 
 function resolveHtmlPath() {
   // Load local index.html in development and production.
@@ -82,6 +106,32 @@ async function handleOpenVideoDialog() {
   };
 }
 
+// Ensure single instance so double-click opens in existing window
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv, _cwd) => {
+    try {
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      // On Windows/Linux, the file path is in argv
+      const candidates = Array.isArray(argv) ? argv.slice(1) : [];
+      for (let i = candidates.length - 1; i >= 0; i--) {
+        const p = candidates[i];
+        if (!p || p === '.' || p.startsWith('--')) continue;
+        // Strip quotes if any
+        const fp = p.replace(/^"|"$/g, '');
+        if (isVideoFile(fp) && fs.existsSync(fp)) {
+          sendVideoToRenderer(fp);
+          break;
+        }
+      }
+    } catch {}
+  });
+}
+
 app.whenReady().then(() => {
   // Hide the default Electron application menu (File/Edit/View...)
   Menu.setApplicationMenu(null);
@@ -110,6 +160,8 @@ app.whenReady().then(() => {
 
   createMainWindow();
 
+  try { if (process.platform === 'win32') app.setAppUserModelId('com.lnu.electronvideoplayer'); } catch {}
+
   ipcMain.handle('dialog:open-video', handleOpenVideoDialog);
   // Notify renderer when window is maximized/unmaximized
   mainWindow.on('maximize', () => {
@@ -129,6 +181,21 @@ app.whenReady().then(() => {
       createMainWindow();
     }
   });
+
+  // Handle initial launch with a file path (Windows/Linux)
+  try {
+    const argv = process.argv || [];
+    const candidates = argv.slice(1);
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      const p = candidates[i];
+      if (!p || p === '.' || p.startsWith('--')) continue;
+      const fp = p.replace(/^"|"$/g, '');
+      if (isVideoFile(fp) && fs.existsSync(fp)) {
+        sendVideoToRenderer(fp);
+        break;
+      }
+    }
+  } catch {}
 });
 
 app.on('window-all-closed', () => {
