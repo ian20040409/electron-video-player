@@ -55,14 +55,16 @@ npm start
 ## Screenshots
 
 <p align="center">
+<p align="left">Main Menu</p>
 
 <a href="https://imgbox.com/ssoJgRYM" target="_blank"><img src="https://images2.imgbox.com/b7/cd/ssoJgRYM_o.png" alt="image host"/></a>
 
 &nbsp;
-
+<p>Local file</p>
 <a href="https://imgbox.com/se0Rk3FQ" target="_blank"><img src="https://images2.imgbox.com/1d/08/se0Rk3FQ_o.png" alt="image host"/></a>
-＆nbsp
+&nbsp;
 
+<p>Youtube embedded video player</p>
 <a href="https://imgbox.com/F2MiD57J" target="_blank"><img src="https://images2.imgbox.com/cf/78/F2MiD57J_o.png" alt="image host"/></a>
 
 </p>
