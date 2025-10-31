@@ -8,6 +8,7 @@ const http = require('http');
 let mainWindow;
 let staticServer;
 let staticServerPort;
+const pendingOpenFilePaths = [];
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const MIME_BY_EXT = {
@@ -230,7 +231,7 @@ async function createMainWindow() {
     width: 1024,
     height: 720,
     autoHideMenuBar: true,
-    title: 'Electron Video Player',
+    title: 'LNU Player',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -251,19 +252,16 @@ async function createMainWindow() {
   } else {
     mainWindow.loadFile(entryUrl);
   }
-  mainWindow.setTitle('Electron Video Player');
+  mainWindow.setTitle('LNU Player');
 
   // Intercept navigation attempts (e.g., file drops that try to navigate)
-  mainWindow.webContents.on('will-navigate', (event, url) => {
+  mainWindow.webContents.on('will-navigate', async (event, url) => {
     try { event.preventDefault(); } catch {}
     try {
       if (url && url.startsWith('file://')) {
         const filePath = fileURLToPath(url);
         if (filePath) {
-          mainWindow.webContents.send('video:selected', {
-            fileUrl: pathToFileURL(filePath).toString(),
-            fileName: path.basename(filePath),
-          });
+          await sendVideoToRenderer(filePath);
         }
       }
     } catch {}
@@ -272,6 +270,23 @@ async function createMainWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+async function ensureWindowReady() {
+  if (!app.isReady()) {
+    await app.whenReady();
+  }
+  if (!mainWindow) {
+    await createMainWindow();
+  }
+  return mainWindow;
+}
+
+async function openFileFromPath(filePath) {
+  if (!filePath) return;
+  const windowRef = await ensureWindowReady();
+  if (!windowRef) return;
+  await sendVideoToRenderer(filePath);
 }
 
 async function handleOpenVideoDialog() {
@@ -336,8 +351,28 @@ if (!gotLock) {
 }
 
 app.whenReady().then(async () => {
-  // Hide the default Electron application menu (File/Edit/View...)
-  Menu.setApplicationMenu(null);
+  if (process.platform === 'darwin') {
+    const appMenu = Menu.buildFromTemplate([
+      {
+        label: 'LNU Player',
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideothers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' },
+        ],
+      },
+    ]);
+    Menu.setApplicationMenu(appMenu);
+  } else {
+    // Hide the default Electron application menu (File/Edit/View...)
+    Menu.setApplicationMenu(null);
+  }
 
   // Set a CSP header so directives like frame-ancestors take effect
   try {
@@ -381,7 +416,7 @@ app.whenReady().then(async () => {
 
   await createMainWindow();
 
-  try { if (process.platform === 'win32') app.setAppUserModelId('com.lnu.electronvideoplayer'); } catch {}
+  try { if (process.platform === 'win32') app.setAppUserModelId('com.lnu.lnuplayer'); } catch {}
 
   ipcMain.handle('dialog:open-video', handleOpenVideoDialog);
   ipcMain.handle('local-file-url', async (_event, absolutePath) => buildServedFileUrl(absolutePath));
@@ -418,6 +453,13 @@ app.whenReady().then(async () => {
       }
     }
   } catch {}
+
+  while (pendingOpenFilePaths.length > 0) {
+    const pendingPath = pendingOpenFilePaths.shift();
+    try {
+      await openFileFromPath(pendingPath);
+    } catch {}
+  }
 });
 
 app.on('will-quit', () => {
@@ -432,25 +474,17 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Support drag-and-drop from finder on macOS.
+// Support Finder opens (double-click/drag-and-drop) on macOS.
 app.on('open-file', (event, filePath) => {
   event.preventDefault();
+  if (!filePath) return;
 
-  if (!mainWindow) {
-    createMainWindow();
-    mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow.webContents.send('video:selected', {
-        fileUrl: pathToFileURL(filePath).toString(),
-        fileName: path.basename(filePath),
-      });
-    });
+  if (!app.isReady()) {
+    pendingOpenFilePaths.push(filePath);
     return;
   }
 
-  mainWindow.webContents.send('video:selected', {
-    fileUrl: pathToFileURL(filePath).toString(),
-    fileName: path.basename(filePath),
-  });
+  openFileFromPath(filePath);
 });
 
 // Open links in external browser.

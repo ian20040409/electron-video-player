@@ -1,5 +1,5 @@
 {
-  "name": "electron-video-player",
+  "name": "LNU-Video-Player",
   "version": "0.1.1",
   "description": "Electron-based video.js player for playing local video files.",
   "main": "src/main.js",
@@ -21,8 +21,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.lnu.electronvideoplayer",
-    "productName": "Electron Video Player",
+    "appId": "com.lnu.lnuplayer",
+    "productName": "LNU Player",
     "files": [
       "src/**/*",
       "!**/*.map"

@@ -182,7 +182,7 @@ function loadVideo({ fileUrl, fileName }) {
   scheduleHeaderHide();
   // Update OS window title
   if (window.electronAPI?.setTitle) {
-    window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
+    window.electronAPI.setTitle(`${fileName} - LNU Player`);
   }
 }
 
@@ -226,7 +226,7 @@ function playFromUrlInput() {
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
   scheduleHeaderHide();
   if (window.electronAPI?.setTitle) {
-    window.electronAPI.setTitle(`${label} - Electron Video Player`);
+    window.electronAPI.setTitle(`${label} - LNU Player`);
   }
 }
 
@@ -278,7 +278,7 @@ if (backBtn) {
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'false');
   fileNameLabel.textContent = 'No file selected';
   if (window.electronAPI?.setTitle) {
-    window.electronAPI.setTitle('Electron Video Player');
+    window.electronAPI.setTitle('LNU Player');
   }
 });
 }
@@ -394,7 +394,7 @@ async function processDropEvent(e) {
         if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
         scheduleHeaderHide();
         if (window.electronAPI?.setTitle) {
-          window.electronAPI.setTitle(`${label} - Electron Video Player`);
+          window.electronAPI.setTitle(`${label} - LNU Player`);
         }
         return true;
       }
