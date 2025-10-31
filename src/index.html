@@ -56,7 +56,19 @@
               <span class="btn-label">Open Video</span>
             </button>
             <div class="or">or</div>
-            <input id="url-input" class="welcome-input" type="text" placeholder="Paste URL (mp4, m3u8)" aria-label="Video URL" />
+            <div class="welcome-input-group">
+              <input id="url-input" class="welcome-input" type="text" placeholder="Paste URL (mp4, m3u8)" aria-label="Video URL" />
+              <button id="url-paste" class="btn btn-ghost paste-btn" type="button" title="Paste from clipboard">
+                <span class="btn-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="8" y="3" width="8" height="4" rx="1.2" />
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                    <path d="M10 12h4" />
+                    <path d="M10 16h6" />
+                  </svg>
+                </span>
+              </button>
+            </div>
             <button id="url-play" class="btn btn-secondary" title="Play from URL">
               <span class="btn-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

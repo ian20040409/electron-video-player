@@ -13,6 +13,7 @@ const fileNameLabel = document.getElementById('file-name');
 const welcomeOpenButton = document.getElementById('welcome-open-file');
 const urlInput = document.getElementById('url-input');
 const urlPlayBtn = document.getElementById('url-play');
+const urlPasteBtn = document.getElementById('url-paste');
 const welcomeSection = document.getElementById('welcome');
 const backBtn = document.getElementById('back-btn');
 const headerEl = document.querySelector('.app-header');
@@ -146,6 +147,33 @@ if (urlInput) {
     if (e.key === 'Enter') {
       e.preventDefault();
       playFromUrlInput();
+    }
+  });
+}
+
+if (urlPasteBtn) {
+  urlPasteBtn.addEventListener('click', async () => {
+    if (!urlInput) return;
+    let text = '';
+    try {
+      if (navigator.clipboard?.readText) {
+        text = await navigator.clipboard.readText();
+      }
+    } catch (error) {
+      console.error('Clipboard read failed', error);
+    }
+
+    if (!text && window.electronAPI?.readClipboard) {
+      try {
+        text = await window.electronAPI.readClipboard();
+      } catch (error) {
+        console.error('Electron clipboard read failed', error);
+      }
+    }
+
+    if (typeof text === 'string' && text.trim()) {
+      urlInput.value = text.trim();
+      urlInput.focus();
     }
   });
 }
