@@ -185,7 +185,40 @@ themeToggle.addEventListener('click', () => {
 });
 
 // Ambient intensity: maximum by default (CSS handles fixed opacity)
-// Drag-and-drop disabled per user request
+
+// --- Drag and Drop --- 
+const dragOverlay = document.getElementById('drag-overlay');
+
+window.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  document.body.classList.add('is-dragging');
+});
+
+window.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  document.body.classList.add('is-dragging');
+});
+
+window.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('is-dragging');
+});
+
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('is-dragging');
+
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    const file = files[0];
+    const fileUrl = 'file:///' + file.path.replace(/\\/g, '/');
+    const fileName = file.name;
+
+    if (guessMimeType(fileName)) {
+      loadVideo({ fileUrl, fileName });
+    }
+  }
+});
 
 // --- Header auto-hide while playing ---
 let headerHideTimer;
