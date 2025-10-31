@@ -44,10 +44,27 @@
           <div class="welcome-title">Welcome</div>
           <div class="welcome-subtitle">Open a video to get started</div>
           <div class="welcome-actions">
-            <button id="welcome-open-file" class="btn btn-primary" title="Open video">Open Video</button>
+            <button id="welcome-open-file" class="btn btn-primary" title="Open video">
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 3H8a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V8z" />
+                  <path d="M14 3v5h5" />
+                  <rect x="9.2" y="12" width="4.3" height="4" rx="1.1" />
+                  <path d="M13.5 13.2l2.6-1.8v5.2l-2.6-1.8" />
+                </svg>
+              </span>
+              <span class="btn-label">Open Video</span>
+            </button>
             <div class="or">or</div>
-            <input id="url-input" type="text" placeholder="Paste URL (mp4, m3u8)" aria-label="Video URL" />
-            <button id="url-play" class="btn" title="Play from URL">Play URL</button>
+            <input id="url-input" class="welcome-input" type="text" placeholder="Paste URL (mp4, m3u8)" aria-label="Video URL" />
+            <button id="url-play" class="btn btn-secondary" title="Play from URL">
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7.5 18.5h9a4 4 0 0 0 0-8 5.2 5.2 0 0 0-10.2-1.4A3.5 3.5 0 0 0 7.5 18.5z" />
+                </svg>
+              </span>
+              <span class="btn-label">Play URL</span>
+            </button>
             <div class="hint">or drag & drop a file into the window</div>
           </div>
         </div>

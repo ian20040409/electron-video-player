@@ -25,7 +25,12 @@ const player = videojs('video-player', {
   controls: true,
   preload: 'auto',
   playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
-  controlBar: { playbackRateMenuButton: true },
+  controlBar: {
+    playbackRateMenuButton: true,
+    volumePanel: {
+      inline: false,
+    },
+  },
 });
 // Ensure player fills container for all sources
 try { player.addClass('vjs-fill'); } catch {}
