@@ -77,7 +77,8 @@
     "mac": {
       "target": [
         "dmg"
-      ]
+      ],
+      "icon": "build/icon.icns"
     },
     "win": {
       "target": [
@@ -124,7 +125,8 @@
           "name": "Flash Video",
           "role": "Viewer"
         }
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "linux": {
       "target": [
@@ -139,7 +141,9 @@
         "video/x-msvideo",
         "video/x-ms-wmv",
         "video/x-flv"
-      ]
-    }
+      ],
+      "icon": "build/icon.png"
+    },
+    "electronDist": "node_modules/electron/dist"
   }
 }

@@ -224,7 +224,9 @@ async function buildServedFileUrl(absolutePath) {
 }
 
 async function createMainWindow() {
-  mainWindow = new BrowserWindow({
+  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  const iconPath = path.join(__dirname, '..', 'build', iconFile);
+  const windowOptions = {
     width: 1024,
     height: 720,
     autoHideMenuBar: true,
@@ -235,7 +237,13 @@ async function createMainWindow() {
       nodeIntegration: false,
       sandbox: false,
     },
-  });
+  };
+
+  if (process.platform !== 'darwin') {
+    windowOptions.icon = iconPath;
+  }
+
+  mainWindow = new BrowserWindow(windowOptions);
 
   const entryUrl = await resolveEntryUrl();
   if (entryUrl.startsWith('http')) {
