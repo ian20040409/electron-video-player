@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const { pathToFileURL } = require('url');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   openVideoFile: () => ipcRenderer.invoke('dialog:open-video'),
@@ -12,5 +13,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const subscription = (_event, data) => callback(data);
     ipcRenderer.on('video:selected', subscription);
     return () => ipcRenderer.removeListener('video:selected', subscription);
+  },
+  toFileUrl: (absolutePath) => {
+    try {
+      if (typeof absolutePath !== 'string' || !absolutePath) return null;
+      return pathToFileURL(absolutePath).toString();
+    } catch {
+      return null;
+    }
   },
 });

@@ -57,6 +57,7 @@ function buildSourceForUrl(u) {
 }
 
 function loadVideo({ fileUrl, fileName }) {
+  try { console.debug('[drop] loadVideo called:', { fileUrl, fileName }); } catch {}
   fileNameLabel.textContent = fileName || 'Unknown file';
 
   teardownAmbient();
@@ -68,6 +69,7 @@ function loadVideo({ fileUrl, fileName }) {
 
   player.src(source);
   player.ready(() => {
+    try { console.debug('[drop] player ready, attempting play'); } catch {}
     player.play().catch(() => {
       // Autoplay might be blocked - ignore and allow manual play.
     });
@@ -77,6 +79,7 @@ function loadVideo({ fileUrl, fileName }) {
   rewireAmbientWhenReady();
 
   // Switch UI to player view
+  try { console.debug('[drop] switching UI to player view'); } catch {}
   document.body.classList.add('has-video');
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
   // Start header auto-hide timer once we have a video
@@ -148,12 +151,12 @@ if (backBtn) {
     teardownAmbient();
     document.body.classList.remove('has-video');
     document.body.classList.remove('header-hidden');
-    if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'false');
-    fileNameLabel.textContent = 'No file selected';
-    if (window.electronAPI?.setTitle) {
-    window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
-    }
-  });
+  if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'false');
+  fileNameLabel.textContent = 'No file selected';
+  if (window.electronAPI?.setTitle) {
+    window.electronAPI.setTitle('Electron Video Player');
+  }
+});
 }
 
 window.electronAPI.onVideoSelected((fileInfo) => {
@@ -189,36 +192,120 @@ themeToggle.addEventListener('click', () => {
 // --- Drag and Drop --- 
 const dragOverlay = document.getElementById('drag-overlay');
 
-window.addEventListener('dragenter', (e) => {
+function processDropEvent(e) {
+  // Always take ownership of the drop to prevent OS default handlers (e.g., Windows Media Player)
   e.preventDefault();
-  document.body.classList.add('is-dragging');
-});
-
-window.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  document.body.classList.add('is-dragging');
-});
-
-window.addEventListener('dragleave', (e) => {
-  e.preventDefault();
+  e.stopPropagation();
   document.body.classList.remove('is-dragging');
-});
+  try { console.debug('[drop] event fired'); } catch {}
 
-window.addEventListener('drop', (e) => {
-  e.preventDefault();
-  document.body.classList.remove('is-dragging');
+  const dt = e.dataTransfer;
+  if (!dt) return false;
+  const files = dt.files;
+  try { console.debug('[drop] files length:', files ? files.length : 'n/a'); } catch {}
 
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
+  // Files list path route (Explorer)
+  if (files && files.length > 0) {
     const file = files[0];
-    const fileUrl = 'file:///' + file.path.replace(/\\/g, '/');
-    const fileName = file.name;
-
-    if (guessMimeType(fileName)) {
+    try { console.debug('[drop] first file:', { name: file?.name, path: file?.path }); } catch {}
+    const filePath = (file && file.path) ? file.path : '';
+    if (filePath) {
+      let fileUrl = null;
+      try { fileUrl = window.electronAPI?.toFileUrl?.(filePath) || null; } catch {}
+      if (!fileUrl) {
+        // Fallback: best-effort encoding for non-ASCII paths
+        const raw = 'file:///' + filePath.replace(/\\/g, '/');
+        fileUrl = encodeURI(raw);
+      }
+      const fileName = file.name || filePath.split(/[\\/]/).pop();
       loadVideo({ fileUrl, fileName });
+      return true;
     }
   }
-});
+
+  // Items API fallback
+  try {
+    const items = dt.items ? Array.from(dt.items) : [];
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const f = item.getAsFile && item.getAsFile();
+        if (f && f.path) {
+          let fileUrl = null;
+          try { fileUrl = window.electronAPI?.toFileUrl?.(f.path) || null; } catch {}
+          if (!fileUrl) {
+            const raw = 'file:///' + f.path.replace(/\\/g, '/');
+            fileUrl = encodeURI(raw);
+          }
+          const fileName = f.name || f.path.split(/[\\/]/).pop();
+          loadVideo({ fileUrl, fileName });
+          return true;
+        }
+      }
+    }
+  } catch {}
+
+  // Text/URL fallback
+  try {
+    const uri = dt.getData('text/uri-list') || dt.getData('text/plain');
+    const val = (uri || '').trim();
+    if (val) {
+      const isFileUrl = /^file:\/\//i.test(val);
+      if (isFileUrl) {
+        const fileName = val.split(/[\\/]/).pop();
+        try { console.debug('[drop] uri-list file url:', val); } catch {}
+        loadVideo({ fileUrl: val, fileName });
+        return true;
+      }
+      if (/^https?:\/\//i.test(val)) {
+        const source = buildSourceForUrl(val);
+        const fileName = val.split(/[\\/]/).pop() || val;
+        try { console.debug('[drop] http(s) url:', val); } catch {}
+        fileNameLabel.textContent = fileName;
+        teardownAmbient();
+        player.src(source);
+        player.ready(() => { player.play().catch(() => {}); });
+        rewireAmbientWhenReady();
+        document.body.classList.add('has-video');
+        if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
+        scheduleHeaderHide();
+        if (window.electronAPI?.setTitle) {
+          window.electronAPI.setTitle(`${fileName} - Electron Video Player`);
+        }
+        return true;
+      }
+    }
+  } catch {}
+  // Not handled here: allow Chromium to navigate so main process will intercept
+  return false;
+}
+
+function onDragEnter(e) { e.preventDefault(); e.stopPropagation(); document.body.classList.add('is-dragging'); }
+function onDragOver(e) { e.preventDefault(); e.stopPropagation(); try { if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; } catch {} document.body.classList.add('is-dragging'); }
+function onDragLeave(e) { e.preventDefault(); e.stopPropagation(); document.body.classList.remove('is-dragging'); }
+
+// Attach listeners broadly to capture drop regardless of target
+try {
+  window.addEventListener('dragenter', onDragEnter, { capture: true });
+  window.addEventListener('dragover', onDragOver, { capture: true });
+  window.addEventListener('dragleave', onDragLeave, { capture: true });
+  window.addEventListener('drop', processDropEvent, { capture: true });
+
+  document.addEventListener('dragenter', onDragEnter, { capture: true });
+  document.addEventListener('dragover', onDragOver, { capture: true });
+  document.addEventListener('dragleave', onDragLeave, { capture: true });
+  document.addEventListener('drop', processDropEvent, { capture: true });
+
+  const playerContainer = document.querySelector('.player-container');
+  if (playerContainer) {
+    playerContainer.addEventListener('dragover', onDragOver, { capture: true });
+    playerContainer.addEventListener('drop', processDropEvent, { capture: true });
+  }
+
+  if (welcomeSection) {
+    welcomeSection.addEventListener('dragover', onDragOver, { capture: true });
+    welcomeSection.addEventListener('drop', processDropEvent, { capture: true });
+  }
+} catch {}
 
 // --- Header auto-hide while playing ---
 let headerHideTimer;

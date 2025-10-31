@@ -1,6 +1,6 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, Menu } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell, Menu, session } = require('electron');
 const path = require('path');
-const { pathToFileURL } = require('url');
+const { pathToFileURL, fileURLToPath } = require('url');
 
 // Keep a global reference to the main window to avoid GC closing it.
 let mainWindow;
@@ -26,6 +26,22 @@ function createMainWindow() {
 
   mainWindow.loadFile(resolveHtmlPath());
   mainWindow.setTitle('Electron Video Player');
+
+  // Intercept navigation attempts (e.g., file drops that try to navigate)
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    try { event.preventDefault(); } catch {}
+    try {
+      if (url && url.startsWith('file://')) {
+        const filePath = fileURLToPath(url);
+        if (filePath) {
+          mainWindow.webContents.send('video:selected', {
+            fileUrl: pathToFileURL(filePath).toString(),
+            fileName: path.basename(filePath),
+          });
+        }
+      }
+    } catch {}
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -69,6 +85,28 @@ async function handleOpenVideoDialog() {
 app.whenReady().then(() => {
   // Hide the default Electron application menu (File/Edit/View...)
   Menu.setApplicationMenu(null);
+
+  // Set a CSP header so directives like frame-ancestors take effect
+  try {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: file:",
+      "media-src 'self' blob: file: http: https:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+    ].join('; ');
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      const headers = details.responseHeaders || {};
+      headers['Content-Security-Policy'] = [csp];
+      callback({ responseHeaders: headers });
+    });
+  } catch {}
 
   createMainWindow();
 
