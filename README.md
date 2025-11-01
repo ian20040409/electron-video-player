@@ -1,6 +1,6 @@
 # Electron Video Player
 
-Lightweight Electron desktop player powered by videojs for local files and internet URLs (MP4, HLS/m3u8, YouTube), with cross-platform support for Linux, Windows and macOS.
+A lightweight and privacy-first desktop player, powered by VideoJS, supports both local files and internet URLs (MP4, HLS/m3u8, YouTube). It offers cross-platform compatibility with Linux, Windows, and macOS.
 
 ## Features
 
