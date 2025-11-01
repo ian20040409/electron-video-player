@@ -114,6 +114,28 @@ This method is useful for creating pre-releases or testing the build process wit
 
 The workflow will execute the same build and release steps, but the resulting GitHub Release will be a draft if you selected that option, allowing you to review it before publishing.
 
+## How to Build
+
+This project uses a GitHub Action to automate the build process.
+
+### Requirements
+
+- A GitHub account.
+- A decrypted YouTube IPA. You must upload it to a cloud storage service that allows direct downloads (e.g., `litterbox.catbox.moe`).
+
+### Steps
+
+1.  **Fork this repository.**
+2.  In your forked repository, go to the **Actions** tab.
+3.  Select the **Build and Release** workflow from the list.
+4.  Click the **Run workflow** dropdown button.
+5.  Enter the **direct download link** to your IPA file in the input field.
+6.  Click **Run workflow**.
+
+The process will take some time. Once completed, you can find the generated IPA file in the **Releases** tab of your repository.
+
+**Important:** After downloading the `.ipa`, it is strongly recommended to delete the release from your repository to avoid any issues with Google, as the IPA file is not your property and is not authorized for distribution.
+
 ## Download and Install
 
 ### macOS
