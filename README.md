@@ -52,6 +52,29 @@ electron_mirror=https://npmmirror.com/mirrors/electron/
 ```
 npm start
 ```
+
+## Download and Install
+
+### macOS
+
+1. Download the latest `.dmg` file from [Releases](https://github.com/ian20040409/electron-video-player/releases)
+2. Open the `.dmg` file and drag the app to the Applications folder
+3. First run may show a security warning. Open **System Preferences > Security & Privacy** and click "Open Anyway"
+4. If you encounter "cannot be opened because the developer cannot be verified" or quarantine issues, run the following command in Terminal:
+
+```bash
+sudo xattr -r -d com.apple.quarantine /Applications/LNU\ Player.app
+```
+
+Then you can launch the app normally.
+
+### Windows
+
+1. Download the latest `.exe` installer from [Releases](https://github.com/ian20040409/electron-video-player/releases)
+2. Run the installer and follow the on-screen instructions
+3. The app will be installed to your Program Files directory
+4. A shortcut will be created on your desktop and Start Menu
+
 ## Screenshots
 
 ## Main Menu
