@@ -62,7 +62,7 @@ npm start
 
 ### Local file
 
-[![Local file](https://i.meee.com.tw/lVEsu4L.png)
+![Local file](https://i.meee.com.tw/lVEsu4L.png)
 
 
 ---
