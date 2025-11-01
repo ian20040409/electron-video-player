@@ -54,24 +54,21 @@ npm start
 ```
 ## Screenshots
 
-<p align="center">
+## Main Menu
 
+[![Main Menu](https://images2.imgbox.com/31/67/meDRsIwC_o.png)](https://imgbox.com/meDRsIwC)
 
-<p align="left">Main Menu</p>
+---
 
-<a href="https://imgbox.com/meDRsIwC" target="_blank"><img src="https://images2.imgbox.com/31/67/meDRsIwC_o.png" alt="image host"/></a> 
+### Local file
 
-&nbsp;
-<p>Local file</p>
-<a href="https://imgbox.com/OiWoAFl4" target="_blank"><img src="https://images2.imgbox.com/bb/60/OiWoAFl4_o.png" alt="image host"/></a>
+[![Local file](https://images2.imgbox.com/bb/60/OiWoAFl4_o.png)](https://imgbox.com/OiWoAFl4)
 
+---
 
-&nbsp;
+### YouTube embedded video player
 
-<p>Youtube embedded video player</p>
-<a href="https://imgbox.com/F2MiD57J" target="_blank"><img src="https://images2.imgbox.com/cf/78/F2MiD57J_o.png" alt="image host"/></a>
-
-</p>
+[![YouTube embedded video player](https://images2.imgbox.com/cf/78/F2MiD57J_o.png)](https://imgbox.com/F2MiD57J)
 
 
 ## Usage
