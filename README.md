@@ -79,7 +79,7 @@ Then you can launch the app normally.
 
 ## Main Menu
 
-[![Main Menu](docs/pics/Main Menu.png)
+![Main Menu](docs/pics/Main Menu.png)
 
 ---
 
