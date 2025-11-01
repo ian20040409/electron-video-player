@@ -27,11 +27,17 @@ const MIME_BY_EXT = {
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
   '.mp4': 'video/mp4',
+  '.m4v': 'video/mp4',
   '.webm': 'video/webm',
+  '.ogv': 'video/ogg',
   '.mjs': 'application/javascript; charset=utf-8',
   '.m3u8': 'application/x-mpegURL',
   '.ts': 'video/mp2t',
   '.m4a': 'audio/mp4',
+  '.mp3': 'audio/mpeg',
+  '.aac': 'audio/aac',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
 };
 
 function guessMimeForPath(filePath) {
@@ -170,12 +176,22 @@ async function ensureStaticServer() {
   return staticServerPort;
 }
 
-const VIDEO_EXTS = new Set(['mp4','m4v','mov','webm','mkv','avi','wmv','flv']);
+const SUPPORTED_MEDIA_EXTS = new Set([
+  'mp4',
+  'm4v',
+  'webm',
+  'ogv',
+  'mp3',
+  'm4a',
+  'aac',
+  'ogg',
+  'wav',
+]);
 
-function isVideoFile(p) {
+function isSupportedMediaFile(p) {
   if (!p || typeof p !== 'string') return false;
   const ext = path.extname(p).replace(/^\./,'').toLowerCase();
-  return VIDEO_EXTS.has(ext);
+  return SUPPORTED_MEDIA_EXTS.has(ext);
 }
 
 async function sendVideoToRenderer(filePath) {
@@ -290,22 +306,14 @@ async function openFileFromPath(filePath) {
 }
 
 async function handleOpenVideoDialog() {
+  const mediaExtensions = Array.from(SUPPORTED_MEDIA_EXTS).sort();
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    title: 'Select a video file',
+    title: 'Select a media file',
     properties: ['openFile'],
     filters: [
       {
-        name: 'Video Files',
-        extensions: [
-          'mp4',
-          'mov',
-          'mkv',
-          'webm',
-          'avi',
-          'm4v',
-          'wmv',
-          'flv',
-        ],
+        name: 'Media Files',
+        extensions: mediaExtensions,
       },
       { name: 'All Files', extensions: ['*'] },
     ],
@@ -341,7 +349,7 @@ if (!gotLock) {
         if (!p || p === '.' || p.startsWith('--')) continue;
         // Strip quotes if any
         const fp = p.replace(/^"|"$/g, '');
-        if (isVideoFile(fp) && fs.existsSync(fp)) {
+        if (isSupportedMediaFile(fp) && fs.existsSync(fp)) {
           await sendVideoToRenderer(fp);
           break;
         }
@@ -447,7 +455,7 @@ app.whenReady().then(async () => {
       const p = candidates[i];
       if (!p || p === '.' || p.startsWith('--')) continue;
       const fp = p.replace(/^"|"$/g, '');
-      if (isVideoFile(fp) && fs.existsSync(fp)) {
+      if (isSupportedMediaFile(fp) && fs.existsSync(fp)) {
         await sendVideoToRenderer(fp);
         break;
       }

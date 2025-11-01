@@ -1,12 +1,13 @@
 ﻿const mimeByExtension = {
   mp4: 'video/mp4',
   m4v: 'video/mp4',
-  mov: 'video/quicktime',
   webm: 'video/webm',
-  mkv: 'video/x-matroska',
-  avi: 'video/x-msvideo',
-  wmv: 'video/x-ms-wmv',
-  flv: 'video/x-flv',
+  ogv: 'video/ogg',
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  ogg: 'audio/ogg',
+  wav: 'audio/wav',
 };
 
 const fileNameLabel = document.getElementById('file-name');
@@ -135,9 +136,15 @@ function buildSourceForUrl(u) {
   }
 
   const lower = (typeof u === 'string') ? u.toLowerCase() : '';
-  const type = isHlsUrl(u)
-    ? 'application/x-mpegURL'
-    : (lower.endsWith('.mp4') ? 'video/mp4' : undefined);
+  let type;
+  if (isHlsUrl(u)) {
+    type = 'application/x-mpegURL';
+  } else {
+    const extMatch = lower.match(/\.([a-z0-9]+)(?:(?:\?|#).*)?$/);
+    if (extMatch) {
+      type = mimeByExtension[extMatch[1]];
+    }
+  }
   return { src: u, type };
 }
 

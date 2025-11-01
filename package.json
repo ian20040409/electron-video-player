@@ -44,33 +44,38 @@
         "role": "Viewer"
       },
       {
-        "ext": "mov",
-        "name": "QuickTime Movie",
-        "role": "Viewer"
-      },
-      {
         "ext": "webm",
         "name": "WebM Video",
         "role": "Viewer"
       },
       {
-        "ext": "mkv",
-        "name": "Matroska Video",
+        "ext": "ogv",
+        "name": "Ogg Video",
         "role": "Viewer"
       },
       {
-        "ext": "avi",
-        "name": "AVI Video",
+        "ext": "mp3",
+        "name": "MP3 Audio",
         "role": "Viewer"
       },
       {
-        "ext": "wmv",
-        "name": "Windows Media Video",
+        "ext": "m4a",
+        "name": "M4A Audio",
         "role": "Viewer"
       },
       {
-        "ext": "flv",
-        "name": "Flash Video",
+        "ext": "aac",
+        "name": "AAC Audio",
+        "role": "Viewer"
+      },
+      {
+        "ext": "ogg",
+        "name": "Ogg Audio",
+        "role": "Viewer"
+      },
+      {
+        "ext": "wav",
+        "name": "WAV Audio",
         "role": "Viewer"
       }
     ],
@@ -96,33 +101,38 @@
           "role": "Viewer"
         },
         {
-          "ext": "mov",
-          "name": "QuickTime Movie",
-          "role": "Viewer"
-        },
-        {
           "ext": "webm",
           "name": "WebM Video",
           "role": "Viewer"
         },
         {
-          "ext": "mkv",
-          "name": "Matroska Video",
+          "ext": "ogv",
+          "name": "Ogg Video",
           "role": "Viewer"
         },
         {
-          "ext": "avi",
-          "name": "AVI Video",
+          "ext": "mp3",
+          "name": "MP3 Audio",
           "role": "Viewer"
         },
         {
-          "ext": "wmv",
-          "name": "Windows Media Video",
+          "ext": "m4a",
+          "name": "M4A Audio",
           "role": "Viewer"
         },
         {
-          "ext": "flv",
-          "name": "Flash Video",
+          "ext": "aac",
+          "name": "AAC Audio",
+          "role": "Viewer"
+        },
+        {
+          "ext": "ogg",
+          "name": "Ogg Audio",
+          "role": "Viewer"
+        },
+        {
+          "ext": "wav",
+          "name": "WAV Audio",
           "role": "Viewer"
         }
       ],
@@ -135,12 +145,13 @@
       "category": "AudioVideo",
       "mimeTypes": [
         "video/mp4",
-        "video/quicktime",
         "video/webm",
-        "video/x-matroska",
-        "video/x-msvideo",
-        "video/x-ms-wmv",
-        "video/x-flv"
+        "video/ogg",
+        "audio/mpeg",
+        "audio/mp4",
+        "audio/aac",
+        "audio/ogg",
+        "audio/wav"
       ],
       "icon": "build/icon.png"
     },
