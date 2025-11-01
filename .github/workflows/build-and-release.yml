@@ -32,32 +32,32 @@ jobs:
             os: macos-latest
             command: npx electron-builder --mac dmg zip --arm64 --publish never
             artifacts: |
-              "dist/*.dmg"
-              "dist/*.zip"
+              dist/*.dmg
+              dist/*.zip
           - name: macos-x64
             os: macos-latest
             command: npx electron-builder --mac dmg zip --x64 --publish never
             artifacts: |
-              "dist/*.dmg"
-              "dist/*.zip"
+              dist/*.dmg
+              dist/*.zip
           - name: windows-arm64
             os: windows-latest
             command: npx electron-builder --win nsis --arm64 --publish never
             artifacts: |
-              "dist/*.exe"
-              "dist/*.exe.blockmap"
+              dist/*.exe
+              dist/*.exe.blockmap
           - name: windows-ia32
             os: windows-latest
             command: npx electron-builder --win nsis --ia32 --publish never
             artifacts: |
-              "dist/*.exe"
-              "dist/*.exe.blockmap"
+              dist/*.exe
+              dist/*.exe.blockmap
           - name: windows-x64
             os: windows-latest
             command: npx electron-builder --win nsis --x64 --publish never
             artifacts: |
-              "dist/*.exe"
-              "dist/*.exe.blockmap"
+              dist/*.exe
+              dist/*.exe.blockmap
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
@@ -75,6 +75,13 @@ jobs:
 
       - name: Build application
         run: ${{ matrix.command }}
+
+      - name: Debug list dist
+        if: always()
+        shell: bash
+        run: |
+          echo "dist contents:"
+          find dist -maxdepth 2 -type f -print 2>/dev/null || ls -al dist || true
 
       - name: Upload artifacts (installers only)
         uses: actions/upload-artifact@v4
@@ -109,10 +116,10 @@ jobs:
           name: Release ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
           target_commitish: ${{ github.sha }}
           files: |
-            "release/**/*.dmg"
-            "release/**/*.zip"
-            "release/**/*.exe"
-            "release/**/*.exe.blockmap"
+            release/**/*.dmg
+            release/**/*.zip
+            release/**/*.exe
+            release/**/*.exe.blockmap
           draft: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.draft || true }}
           fail_on_unmatched_files: true
         env:
