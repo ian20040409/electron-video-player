@@ -73,6 +73,47 @@ electron_mirror=https://npmmirror.com/mirrors/electron/
 npm start
 ```
 
+## Building and Releasing
+
+This project uses a GitHub Action to automate the build and release process for Windows and macOS. The workflow is defined in `.github/workflows/build-and-release.yml`.
+
+You can trigger a new release in two ways:
+
+### 1. Pushing a Git Tag
+
+This is the recommended method for creating a final release.
+
+1.  **Commit all your changes** to the `main` branch.
+2.  **Create a new Git tag** that follows semantic versioning (e.g., `v1.0.0`).
+
+    ```bash
+    git tag v1.0.0
+    ```
+
+3.  **Push the tag** to the remote repository.
+
+    ```bash
+    git push origin v1.0.0
+    ```
+
+4.  The GitHub Action will automatically trigger. It will:
+    - Build the application for all target platforms (macOS arm64/x64, Windows arm64/ia32/x64).
+    - Create a new GitHub Release with the same name as your tag.
+    - Attach all the generated installers (`.dmg`, `.zip`, `.exe`) to the release.
+
+### 2. Manual Trigger
+
+This method is useful for creating pre-releases or testing the build process without creating a public release immediately.
+
+1.  Navigate to the **Actions** tab in the GitHub repository.
+2.  Select the **Build and Release** workflow from the list.
+3.  Click the **Run workflow** dropdown button.
+4.  Enter the **tag** you want to use for the release (e.g., `v1.0.0-beta`).
+5.  Choose whether to create the release as a **draft** (defaults to `true`).
+6.  Click **Run workflow**.
+
+The workflow will execute the same build and release steps, but the resulting GitHub Release will be a draft if you selected that option, allowing you to review it before publishing.
+
 ## Download and Install
 
 ### macOS
