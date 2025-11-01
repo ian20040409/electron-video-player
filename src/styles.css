@@ -612,10 +612,11 @@ body::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
   background-image: none;
   border: 1px solid var(--border);
   border-radius: 22px;
-  padding: 44px 46px 36px;
+  padding: 56px 60px 46px;
   box-shadow: 0 22px 60px rgba(15, 18, 22, 0.38);
-  min-width: 380px;
-  max-width: 520px;
+  min-width: 420px;
+  max-width: 640px;
+  width: clamp(420px, 58vw, 640px);
   text-align: center;
   overflow: hidden;
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -628,7 +629,7 @@ body::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
 .welcome .or { color: var(--muted); font-size: 0.9rem; margin: 6px 0; }
 .welcome-input-group {
   width: 100%;
-  max-width: 460px;
+  max-width: 520px;
   display: flex;
   align-items: stretch;
   gap: 10px;

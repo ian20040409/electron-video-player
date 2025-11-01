@@ -246,6 +246,8 @@ async function createMainWindow() {
   const windowOptions = {
     width: 1024,
     height: 720,
+    minWidth: 900,
+    minHeight: 600,
     autoHideMenuBar: true,
     title: 'LNU Player',
     webPreferences: {
