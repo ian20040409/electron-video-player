@@ -11,7 +11,7 @@ Lightweight Electron desktop player powered by [videojs](https://videojs.com/) f
 - Header auto‑hide during playback; reappears on interaction
 - Back button (return to welcome), theme toggle (dark/light)
 - Keyboard shortcuts for seek, volume, speed, fullscreen, open
-- OS window title shows the current filename
+- Picture-in-Picture (PiP)
 
 ### YouTube Streaming
 
