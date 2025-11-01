@@ -79,20 +79,20 @@ Then you can launch the app normally.
 
 ## Main Menu
 
-[![Main Menu](https://images2.imgbox.com/31/67/meDRsIwC_o.png)](https://imgbox.com/meDRsIwC)
+[![Main Menu](docs/pics/Main Menu.png)
 
 ---
 
 ### Local file
 
-![Local file](https://i.meee.com.tw/lVEsu4L.png)
+![Local file](docs/pics/Local file.png)
 
 
 ---
 
 ### YouTube embedded video player
 
-[![YouTube embedded video player](https://images2.imgbox.com/cf/78/F2MiD57J_o.png)](https://imgbox.com/F2MiD57J)
+![YouTube embedded video player](docs/pics/YouTube embedded video player.png)
 
 
 ## Usage
