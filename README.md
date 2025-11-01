@@ -13,6 +13,26 @@ Lightweight Electron desktop player powered by videojs for local files and inter
 - Keyboard shortcuts for seek, volume, speed, fullscreen, open
 - Picture-in-Picture (PiP)
 
+## Supported Formats
+
+### Video Formats
+- **MP4** (H.264/H.265) — Container format widely supported across platforms
+- **WebM** (VP8/VP9) — Open-source format for web browsers
+- **Ogg/Theora** — Alternative open-source format
+
+### Streaming Protocols
+- **HTTP/HTTPS Progressive Download** — Direct MP4 file playback
+- **HLS (HTTP Live Streaming)** — `.m3u8` playlist format, widely used for adaptive bitrate streaming
+- **DASH (Dynamic Adaptive Streaming over HTTP)** — `.mpd` manifest format (with additional plugin support)
+- **YouTube** — Direct YouTube links and playlists via `videojs-youtube` plugin
+
+### Audio Codecs
+- AAC (Advanced Audio Codec)
+- MP3 (MPEG-1 Layer III)
+- Vorbis (in WebM/Ogg containers)
+
+**Note:** Exact codec support depends on your operating system's media engine. Most modern browsers and Electron support the formats listed above. For streams that fail to load, check browser console for CORS or unsupported codec errors.
+
 ### YouTube Streaming
 
 - Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window—playback uses the official iframe tech via `videojs-youtube`.
