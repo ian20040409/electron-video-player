@@ -1,6 +1,6 @@
 # Electron Video Player
 
-Lightweight Electron desktop player powered by [videojs](https://videojs.com/) for local files and internet URLs (MP4, HLS/m3u8, YouTube). 
+Lightweight Electron desktop player powered by videojs for local files and internet URLs (MP4, HLS/m3u8, YouTube), with cross-platform support for Windows and macOS.
 
 ## Features
 
@@ -11,7 +11,7 @@ Lightweight Electron desktop player powered by [videojs](https://videojs.com/) f
 - Header auto‑hide during playback; reappears on interaction
 - Back button (return to welcome), theme toggle (dark/light)
 - Keyboard shortcuts for seek, volume, speed, fullscreen, open
-- OS window title shows the current filename
+- Picture-in-Picture (PiP)
 
 ### YouTube Streaming
 
@@ -54,24 +54,22 @@ npm start
 ```
 ## Screenshots
 
-<p align="center">
+## Main Menu
+
+[![Main Menu](https://images2.imgbox.com/31/67/meDRsIwC_o.png)](https://imgbox.com/meDRsIwC)
+
+---
+
+### Local file
+
+![Local file](https://i.meee.com.tw/lVEsu4L.png)
 
 
-<p align="left">Main Menu</p>
+---
 
-<a href="https://imgbox.com/meDRsIwC" target="_blank"><img src="https://images2.imgbox.com/31/67/meDRsIwC_o.png" alt="image host"/></a> 
+### YouTube embedded video player
 
-&nbsp;
-<p>Local file</p>
-<a href="https://imgbox.com/OiWoAFl4" target="_blank"><img src="https://images2.imgbox.com/bb/60/OiWoAFl4_o.png" alt="image host"/></a>
-
-
-&nbsp;
-
-<p>Youtube embedded video player</p>
-<a href="https://imgbox.com/F2MiD57J" target="_blank"><img src="https://images2.imgbox.com/cf/78/F2MiD57J_o.png" alt="image host"/></a>
-
-</p>
+[![YouTube embedded video player](https://images2.imgbox.com/cf/78/F2MiD57J_o.png)](https://imgbox.com/F2MiD57J)
 
 
 ## Usage
