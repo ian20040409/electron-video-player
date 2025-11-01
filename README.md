@@ -79,20 +79,20 @@ Then you can launch the app normally.
 
 ## Main Menu
 
-![Main Menu](docs/pics/Main Menu.png)
+![Main Menu](https://github.com/ian20040409/electron-video-player/blob/main/docs/pics/Main%20Menu.png?raw=true)
 
 ---
 
 ### Local file
 
-![Local file](docs/pics/Local file.png)
+![Local file](https://github.com/ian20040409/electron-video-player/blob/main/docs/pics/Local%20file.png?raw=true)
 
 
 ---
 
 ### YouTube embedded video player
 
-![YouTube embedded video player](docs/pics/YouTube embedded video player.png)
+![YouTube embedded video player](https://github.com/ian20040409/electron-video-player/blob/main/docs/pics/YouTube%20embedded%20video%20player.png?raw=true)
 
 
 ## Usage
