@@ -145,7 +145,10 @@ jobs:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
           name: Release ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
           target_commitish: ${{ github.sha }}
-          files: release/*/*.{dmg,zip,exe,blockmap}
+          files: |
+            release/*/*.dmg
+            release/*/*.zip
+            release/*/*.exe
           draft: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.draft || true }}
           fail_on_unmatched_files: true
         env:
