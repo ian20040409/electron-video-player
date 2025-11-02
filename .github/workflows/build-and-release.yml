@@ -30,34 +30,33 @@ jobs:
         include:
           - name: macos-arm64
             os: macos-latest
+            arch: arm64
             command: npx electron-builder --mac dmg zip --arm64 --publish never
             artifacts: |
               dist/*.dmg
               dist/*.zip
           - name: macos-x64
             os: macos-latest
+            arch: intel
             command: npx electron-builder --mac dmg zip --x64 --publish never
             artifacts: |
               dist/*.dmg
               dist/*.zip
           - name: windows-arm64
             os: windows-latest
+            arch: arm64
             command: npx electron-builder --win nsis --arm64 --publish never
-            artifacts: |
-              dist/*.exe
-              dist/*.exe.blockmap
+            artifacts: dist/*.exe
           - name: windows-ia32
             os: windows-latest
+            arch: ia32
             command: npx electron-builder --win nsis --ia32 --publish never
-            artifacts: |
-              dist/*.exe
-              dist/*.exe.blockmap
+            artifacts: dist/*.exe
           - name: windows-x64
             os: windows-latest
+            arch: x64
             command: npx electron-builder --win nsis --x64 --publish never
-            artifacts: |
-              dist/*.exe
-              dist/*.exe.blockmap
+            artifacts: dist/*.exe
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
@@ -75,6 +74,46 @@ jobs:
 
       - name: Build application
         run: ${{ matrix.command }}
+
+      - name: Rename installers with architecture suffix
+        if: matrix.arch
+        shell: bash
+        run: |
+          # Rename Windows .exe files
+          for file in dist/*.exe; do
+            if [ -f "$file" ]; then
+              base=$(basename "$file" .exe)
+              newname="${base}-${{ matrix.arch }}.exe"
+              mv "$file" "dist/$newname"
+              echo "Renamed: $file -> dist/$newname"
+            fi
+          done
+          
+          # Rename macOS .dmg files
+          for file in dist/*.dmg; do
+            if [ -f "$file" ]; then
+              base=$(basename "$file" .dmg)
+              newname="${base}-${{ matrix.arch }}.dmg"
+              mv "$file" "dist/$newname"
+              echo "Renamed: $file -> dist/$newname"
+            fi
+          done
+          
+          # Rename macOS .zip files
+          for file in dist/*.zip; do
+            if [ -f "$file" ]; then
+              base=$(basename "$file" .zip)
+              # Skip if already has -mac suffix from electron-builder
+              if [[ "$base" == *"-mac" ]]; then
+                base="${base%-mac}"
+                newname="${base}-mac-${{ matrix.arch }}.zip"
+              else
+                newname="${base}-${{ matrix.arch }}.zip"
+              fi
+              mv "$file" "dist/$newname"
+              echo "Renamed: $file -> dist/$newname"
+            fi
+          done
 
       - name: Debug list dist
         if: always()
@@ -100,14 +139,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release
-          merge-multiple: true
 
       - name: List files to upload
         run: |
           echo "Files in release/:"
-          ls -al release || true
-          echo "Deep list (1 level):"
-          find release -maxdepth 1 -type f -print || true
+          find release -type f -print || true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -115,11 +151,7 @@ jobs:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
           name: Release ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
           target_commitish: ${{ github.sha }}
-          files: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.exe
-            release/**/*.exe.blockmap
+          files: release/*/*.{dmg,zip,exe,blockmap}
           draft: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.draft || true }}
           fail_on_unmatched_files: true
         env:
