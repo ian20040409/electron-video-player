@@ -18,7 +18,8 @@
   },
   "devDependencies": {
     "electron": "^39.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "electron-icon-builder": "^2.0.1"
   },
   "build": {
     "appId": "com.lnu.lnuplayer",
