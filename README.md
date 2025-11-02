@@ -79,24 +79,7 @@ This project uses a GitHub Action to automate the build and release process for 
 
 You can trigger a new release in two ways:
 
-### 1. Pushing a Git Tag
-
-This is the recommended method for creating a final release.
-
-1.  **Commit all your changes** to the `main` branch.
-2.  **Create a new Git tag** that follows semantic versioning (e.g., `v1.0.0`).
-
-    ```bash
-    git tag v1.0.0
-    ```
-
-3.  **Push the tag** to the remote repository.
-
-    ```bash
-    git push origin v1.0.0
-    ```
-
-4.  The GitHub Action will automatically trigger. It will:
+### GitHub Action
     - Build the application for all target platforms (macOS arm64/x64, Windows arm64/ia32/x64).
     - Create a new GitHub Release with the same name as your tag.
     - Attach all the generated installers (`.dmg`, `.zip`, `.exe`) to the release.
