@@ -80,9 +80,9 @@ This project uses a GitHub Action to automate the build and release process for 
 You can trigger a new release in two ways:
 
 ### GitHub Action
-    - Build the application for all target platforms (macOS arm64/x64, Windows arm64/ia32/x64).
-    - Create a new GitHub Release with the same name as your tag.
-    - Attach all the generated installers (`.dmg`, `.zip`, `.exe`) to the release.
+- Build the application for all target platforms (macOS arm64/x64, Windows arm64/ia32/x64).
+- Create a new GitHub Release with the same name as your tag.
+- Attach all the generated installers (`.dmg`, `.zip`, `.exe`) to the release.
 
 ### 2. Manual Trigger
 
