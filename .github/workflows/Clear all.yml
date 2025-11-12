@@ -1,0 +1,50 @@
+name: Delete ALL workflow runs
+
+on:
+  workflow_dispatch:  # 手動觸發
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: delete-all-runs
+  cancel-in-progress: false
+
+jobs:
+  delete-all:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      SELF_RUN_ID: ${{ github.run_id }}
+    steps:
+      - name: Delete completed workflow runs (skip current run)
+        shell: bash
+        run: |
+          echo "🚨 正在刪除 $GH_REPO 中所有已完成的 workflow runs（排除本次 run）..."
+          while :; do
+            ids=$(gh run list --repo "$GH_REPO" \
+              --status completed --limit 100 \
+              --json databaseId \
+              --jq '.[].databaseId')
+            if [ -z "$ids" ]; then
+              echo "✅ 沒有可刪除的 runs，結束。"
+              break
+            fi
+            count=0
+            for id in $ids; do
+              # 跳過正在執行這個工作流本身的 run
+              if [ "$id" = "$SELF_RUN_ID" ]; then
+                echo "⏭️ 跳過目前這個 run: $id"
+                continue
+              fi
+              if gh run delete "$id" --repo "$GH_REPO"; then
+                count=$((count+1))
+              else
+                echo "⚠️ 無法刪除 run $id，略過"
+              fi
+            done
+            echo "🗑️ 這一輪刪除了 $count 筆。"
+          done
+          echo "🔥 已完成清理（僅刪除 completed）。"
