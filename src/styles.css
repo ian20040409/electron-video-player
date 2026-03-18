@@ -771,3 +771,29 @@ body.is-fullscreen.header-hidden {
 body.is-fullscreen.header-hidden * {
   cursor: none !important;
 }
+
+/* Error toast notification */
+.error-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% + 2rem));
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.25rem;
+  background: #c0392b;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 280ms cubic-bezier(0.34, 1.2, 0.64, 1), opacity 280ms ease;
+  opacity: 0;
+  pointer-events: none;
+  max-width: min(90vw, 480px);
+}
+.error-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
