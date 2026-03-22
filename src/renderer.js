@@ -57,6 +57,44 @@ const player = videojs('video-player', {
 // Ensure player fills container for all sources
 try { player.addClass('vjs-fill'); } catch {}
 
+// --- Error toast ---
+const errorToast = document.getElementById('error-toast');
+const errorToastMsg = document.getElementById('error-toast-msg');
+let errorToastTimer;
+
+function showError(message) {
+  if (!errorToast || !errorToastMsg) return;
+  errorToastMsg.textContent = message;
+  errorToast.setAttribute('aria-hidden', 'false');
+  errorToast.classList.add('visible');
+  clearTimeout(errorToastTimer);
+  errorToastTimer = setTimeout(() => {
+    errorToast.classList.remove('visible');
+    errorToast.setAttribute('aria-hidden', 'true');
+  }, 4500);
+}
+
+player.on('error', () => {
+  try {
+    const err = player.error();
+    const code = err && err.code;
+    const messages = {
+      1: 'Playback aborted.',
+      2: 'Network error — check your connection or URL.',
+      3: 'Decoding error — the file may be corrupted.',
+      4: 'Unsupported format or source not found.',
+    };
+    const msg = (code && messages[code]) || (err && err.message) || 'Failed to load media.';
+    showError(msg);
+  } catch {
+    showError('Failed to load media.');
+  }
+});
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function guessMimeType(fileName) {
   if (!fileName) {
     return undefined;
@@ -73,6 +111,16 @@ function isHlsUrl(u) {
     return path.endsWith('.m3u8') || url.search.toLowerCase().includes('m3u8');
   } catch {
     return typeof u === 'string' && /\.m3u8(\?|$)/i.test(u);
+  }
+}
+
+function isDashUrl(u) {
+  try {
+    const url = new URL(u);
+    const path = url.pathname.toLowerCase();
+    return path.endsWith('.mpd') || url.search.toLowerCase().includes('.mpd');
+  } catch {
+    return typeof u === 'string' && /\.mpd(\?|$)/i.test(u);
   }
 }
 
@@ -139,6 +187,8 @@ function buildSourceForUrl(u) {
   let type;
   if (isHlsUrl(u)) {
     type = 'application/x-mpegURL';
+  } else if (isDashUrl(u)) {
+    type = 'application/dash+xml';
   } else {
     const extMatch = lower.match(/\.([a-z0-9]+)(?:(?:\?|#).*)?$/);
     if (extMatch) {
@@ -160,7 +210,6 @@ function formatSourceLabel(source, fallback) {
 }
 
 function loadVideo({ fileUrl, fileName }) {
-  try { console.debug('[drop] loadVideo called:', { fileUrl, fileName }); } catch {}
   fileNameLabel.textContent = fileName || 'Unknown file';
 
   teardownAmbient();
@@ -172,7 +221,6 @@ function loadVideo({ fileUrl, fileName }) {
 
   player.src(source);
   player.ready(() => {
-    try { console.debug('[drop] player ready, attempting play'); } catch {}
     player.play().catch(() => {
       // Autoplay might be blocked - ignore and allow manual play.
     });
@@ -182,7 +230,6 @@ function loadVideo({ fileUrl, fileName }) {
   rewireAmbientWhenReady();
 
   // Switch UI to player view
-  try { console.debug('[drop] switching UI to player view'); } catch {}
   document.body.classList.add('has-video');
   if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
   // Start header auto-hide timer once we have a video
@@ -328,17 +375,14 @@ async function processDropEvent(e) {
   e.preventDefault();
   e.stopPropagation();
   document.body.classList.remove('is-dragging');
-  try { console.debug('[drop] event fired'); } catch {}
 
   const dt = e.dataTransfer;
   if (!dt) return false;
   const files = dt.files;
-  try { console.debug('[drop] files length:', files ? files.length : 'n/a'); } catch {}
 
   // Files list path route (Explorer)
   if (files && files.length > 0) {
     const file = files[0];
-    try { console.debug('[drop] first file:', { name: file?.name, path: file?.path }); } catch {}
     const filePath = (file && file.path) ? file.path : '';
     if (filePath) {
       let fileUrl = null;
@@ -383,7 +427,6 @@ async function processDropEvent(e) {
       const isFileUrl = /^file:\/\//i.test(val);
       if (isFileUrl) {
         const fileName = val.split(/[\\/]/).pop();
-        try { console.debug('[drop] uri-list file url:', val); } catch {}
         loadVideo({ fileUrl: val, fileName });
         return true;
       }
@@ -391,7 +434,6 @@ async function processDropEvent(e) {
         const source = buildSourceForUrl(val);
         const fallbackLabel = val.split(/[\\/]/).pop() || val;
         const label = formatSourceLabel(source, fallbackLabel);
-        try { console.debug('[drop] http(s) url:', val); } catch {}
         fileNameLabel.textContent = label;
         teardownAmbient();
         player.src(source);
@@ -464,6 +506,21 @@ function scheduleHeaderHide() {
     if (!document.body.classList.contains('has-video')) return;
     revealHeader();
   }, { passive: true });
+});
+
+// Volume persistence
+try {
+  const savedVolume = localStorage.getItem('volume');
+  const savedMuted = localStorage.getItem('muted');
+  if (savedVolume !== null) player.volume(parseFloat(savedVolume));
+  if (savedMuted !== null) player.muted(savedMuted === 'true');
+} catch {}
+
+player.on('volumechange', () => {
+  try {
+    localStorage.setItem('volume', player.volume());
+    localStorage.setItem('muted', player.muted());
+  } catch {}
 });
 
 // Tie into player state

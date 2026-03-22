@@ -1,7 +1,14 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, clipboard } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   openVideoFile: () => ipcRenderer.invoke('dialog:open-video'),
+  readClipboard: () => {
+    try {
+      return clipboard.readText() || '';
+    } catch {
+      return '';
+    }
+  },
   setTitle: (title) => ipcRenderer.send('window:set-title', title),
   onWindowMaximized: (callback) => {
     const handler = (_event, isMax) => callback(!!isMax);
