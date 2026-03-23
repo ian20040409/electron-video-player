@@ -29,4 +29,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return null;
     }
   },
+  ffmpeg: {
+    transcode: (inputPath) => ipcRenderer.invoke('ffmpeg:transcode', inputPath),
+    cancel: (jobId) => ipcRenderer.invoke('ffmpeg:cancel', jobId),
+    cleanup: (tmpFile) => ipcRenderer.send('ffmpeg:cleanup', tmpFile),
+    onProgress: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on('ffmpeg:progress', handler);
+      return () => ipcRenderer.removeListener('ffmpeg:progress', handler);
+    },
+  },
 });
