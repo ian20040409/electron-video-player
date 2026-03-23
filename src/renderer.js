@@ -24,6 +24,17 @@ const backBtn = document.getElementById('back-btn');
 const headerEl = document.querySelector('.app-header');
 const ambientVideo = document.getElementById('ambient-video');
 const themeToggle = document.getElementById('theme-toggle');
+const downloadBtn = document.getElementById('download-btn');
+const dlManager = document.getElementById('dl-manager');
+const dlManagerList = document.getElementById('dl-manager-list');
+const dlManagerClose = document.getElementById('dl-manager-close');
+const successToast = document.getElementById('success-toast');
+const successToastMsg = document.getElementById('success-toast-msg');
+
+// --- Stream download tracking ---
+let currentStreamUrl = null;
+let currentStreamType = null; // 'hls' | 'dash' | 'direct' | null
+const downloads = new Map(); // id → { fileName, percent, status, path }
 
 const appOrigin = (() => {
   try {
@@ -95,6 +106,201 @@ player.on('error', () => {
     showError('Failed to load media.');
   }
 });
+
+// --- Success toast ---
+let successToastTimer;
+function showSuccess(message) {
+  if (!successToast || !successToastMsg) return;
+  successToastMsg.textContent = message;
+  successToast.setAttribute('aria-hidden', 'false');
+  successToast.classList.add('visible');
+  clearTimeout(successToastTimer);
+  successToastTimer = setTimeout(() => {
+    successToast.classList.remove('visible');
+    successToast.setAttribute('aria-hidden', 'true');
+  }, 4500);
+}
+
+// --- Download Manager ---
+function detectStreamType(url) {
+  if (!url || typeof url !== 'string') return null;
+  if (isHlsUrl(url)) return 'hls';
+  if (isDashUrl(url)) return 'dash';
+  if (isYouTubeUrl(url)) return null;
+  if (/^https?:\/\//i.test(url)) return 'direct';
+  return null;
+}
+
+function updateDownloadBtn(url) {
+  currentStreamUrl = url || null;
+  currentStreamType = detectStreamType(url);
+  if (downloadBtn) {
+    downloadBtn.style.display = currentStreamType ? '' : 'none';
+  }
+}
+
+function updateBadge() {
+  if (!downloadBtn) return;
+  let badge = downloadBtn.querySelector('.download-badge');
+  const activeCount = [...downloads.values()].filter((d) => d.status === 'downloading').length;
+  if (activeCount > 0) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'download-badge';
+      downloadBtn.appendChild(badge);
+    }
+    badge.textContent = activeCount;
+  } else if (badge) {
+    badge.remove();
+  }
+}
+
+function toggleDlManager(forceOpen) {
+  if (!dlManager) return;
+  const shouldOpen = forceOpen != null ? forceOpen : !dlManager.classList.contains('open');
+  dlManager.classList.toggle('open', shouldOpen);
+  dlManager.setAttribute('aria-hidden', String(!shouldOpen));
+}
+
+function renderDlItem(id) {
+  const d = downloads.get(id);
+  if (!d) return;
+  let el = dlManagerList?.querySelector(`[data-dl-id="${id}"]`);
+  if (!el) {
+    // Remove empty message
+    const empty = dlManagerList?.querySelector('.dl-manager-empty');
+    if (empty) empty.remove();
+
+    el = document.createElement('div');
+    el.className = 'dl-item';
+    el.dataset.dlId = id;
+    el.innerHTML = `
+      <div class="dl-item-top">
+        <div class="dl-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        <div class="dl-item-info">
+          <div class="dl-item-name" title="${d.fileName}">${d.fileName}</div>
+          <div class="dl-item-status">Preparing…</div>
+        </div>
+        <div class="dl-item-actions"></div>
+      </div>
+      <div class="dl-item-bar"><div class="dl-item-bar-fill"></div></div>`;
+    dlManagerList?.prepend(el);
+  }
+
+  const icon = el.querySelector('.dl-item-icon');
+  const status = el.querySelector('.dl-item-status');
+  const barFill = el.querySelector('.dl-item-bar-fill');
+  const actions = el.querySelector('.dl-item-actions');
+
+  if (d.status === 'downloading') {
+    icon.className = 'dl-item-icon';
+    const speedSuffix = d.speed ? ` · ${d.speed}` : '';
+    status.textContent = (d.label || `${d.percent || 0}%`) + speedSuffix;
+    if (barFill) { barFill.style.width = (d.percent || 0) + '%'; barFill.className = 'dl-item-bar-fill'; }
+    actions.innerHTML = `<button class="dl-cancel-btn" title="Cancel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    actions.querySelector('.dl-cancel-btn').onclick = () => {
+      window.electronAPI.cancelDownload(id);
+      d.status = 'cancelled';
+      d.label = 'Cancelled';
+      renderDlItem(id);
+      updateBadge();
+    };
+  } else if (d.status === 'complete') {
+    icon.className = 'dl-item-icon complete';
+    icon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    status.textContent = 'Complete';
+    if (barFill) { barFill.style.width = '100%'; barFill.className = 'dl-item-bar-fill complete'; }
+    actions.innerHTML = `<button class="dl-open-btn" title="Show in folder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>`;
+    actions.querySelector('.dl-open-btn').onclick = () => {
+      window.electronAPI.openDownloadedFile(d.path);
+    };
+  } else if (d.status === 'error' || d.status === 'cancelled') {
+    icon.className = 'dl-item-icon error';
+    icon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    status.textContent = d.status === 'cancelled' ? 'Cancelled' : (d.message || 'Failed');
+    if (barFill) { barFill.style.width = '100%'; barFill.className = 'dl-item-bar-fill error'; }
+    actions.innerHTML = '';
+  }
+}
+
+// Download button: first click starts download, long-press / second click opens manager
+if (downloadBtn) {
+  downloadBtn.addEventListener('click', async (e) => {
+    // If there are active downloads, toggle manager panel
+    const hasActive = [...downloads.values()].some((d) => d.status === 'downloading');
+    if (hasActive || !currentStreamUrl || !currentStreamType) {
+      toggleDlManager();
+      return;
+    }
+    // Start new download
+    const result = await window.electronAPI.startDownload({
+      url: currentStreamUrl,
+      type: currentStreamType,
+    });
+    if (result?.cancelled) return;
+    if (result?.error) { showError(result.error); return; }
+    if (result?.started && result.id) {
+      downloads.set(result.id, {
+        fileName: result.fileName || 'download',
+        percent: 0,
+        status: 'downloading',
+        label: 'Starting…',
+        speed: '',
+        path: '',
+      });
+      renderDlItem(result.id);
+      updateBadge();
+      toggleDlManager(true);
+    }
+  });
+}
+
+// Close manager
+if (dlManagerClose) {
+  dlManagerClose.addEventListener('click', () => toggleDlManager(false));
+}
+
+// Download progress
+if (window.electronAPI?.onDownloadProgress) {
+  window.electronAPI.onDownloadProgress((data) => {
+    const d = downloads.get(data.id);
+    if (!d) return;
+    d.percent = data.percent || 0;
+    d.label = data.label || '';
+    d.speed = data.speed || '';
+    d.status = 'downloading';
+    renderDlItem(data.id);
+  });
+}
+
+// Download complete
+if (window.electronAPI?.onDownloadComplete) {
+  window.electronAPI.onDownloadComplete((data) => {
+    const d = downloads.get(data.id);
+    if (d) {
+      d.status = 'complete';
+      d.percent = 100;
+      d.path = data.path || '';
+      renderDlItem(data.id);
+      updateBadge();
+    }
+    showSuccess(`Download complete: ${data.fileName || ''}`);
+  });
+}
+
+// Download error
+if (window.electronAPI?.onDownloadError) {
+  window.electronAPI.onDownloadError((data) => {
+    const d = downloads.get(data.id);
+    if (d) {
+      d.status = 'error';
+      d.message = data.message || 'Unknown error';
+      renderDlItem(data.id);
+      updateBadge();
+    }
+    showError(`Download failed: ${data.message || 'Unknown error'}`);
+  });
+}
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -243,6 +449,8 @@ function loadVideo({ fileUrl, fileName }) {
   if (window.electronAPI?.setTitle) {
     window.electronAPI.setTitle(`${fileName} - LNU Player`);
   }
+  // Local files: hide download button
+  updateDownloadBtn(null);
 }
 
 async function handleOpenFile() {
@@ -287,6 +495,7 @@ function playFromUrlInput() {
   if (window.electronAPI?.setTitle) {
     window.electronAPI.setTitle(`${label} - LNU Player`);
   }
+  updateDownloadBtn(value);
 }
 
 if (urlPlayBtn) {
@@ -339,6 +548,7 @@ if (backBtn) {
     if (window.electronAPI?.setTitle) {
       window.electronAPI.setTitle('LNU Player');
     }
+    updateDownloadBtn(null);
   });
 }
 
@@ -450,6 +660,7 @@ async function processDropEvent(e) {
         if (window.electronAPI?.setTitle) {
           window.electronAPI.setTitle(`${label} - LNU Player`);
         }
+        updateDownloadBtn(val);
         return true;
       }
     }
@@ -499,12 +710,10 @@ function revealCursor() {
 
 function scheduleCursorHide() {
   clearTimeout(cursorHideTimer);
-  const isFs = player.isFullscreen && player.isFullscreen();
-  const shouldHide = isFs && document.body.classList.contains('has-video') && !player.paused();
+  const shouldHide = document.body.classList.contains('has-video') && !player.paused();
   if (!shouldHide) return;
   cursorHideTimer = setTimeout(() => {
-    const stillFs = player.isFullscreen && player.isFullscreen();
-    const stillHide = stillFs && document.body.classList.contains('has-video') && !player.paused();
+    const stillHide = document.body.classList.contains('has-video') && !player.paused();
     if (stillHide && playerEl) playerEl.classList.add('cursor-hidden');
   }, 2000);
 }
@@ -568,11 +777,9 @@ player.on('fullscreenchange', () => {
   document.body.classList.toggle('is-fullscreen', !!isFs);
   if (!isFs) {
     document.body.classList.remove('header-hidden');
-    if (playerEl) playerEl.classList.remove('cursor-hidden');
-    clearTimeout(cursorHideTimer);
   }
+  revealCursor();
   scheduleHeaderHide();
-  scheduleCursorHide();
 });
 
 // --- Ambient overlay: mirror the playing video with blur

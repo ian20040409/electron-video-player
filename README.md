@@ -1,15 +1,16 @@
 # LNU Player
 
-A lightweight, privacy-first desktop media player built on Electron + Video.js. Supports local files, internet URLs, HLS/DASH streams, and YouTube — with native HEVC hardware decoding for H.265 content.
+A lightweight, privacy-first desktop media player built on Electron + Video.js. Supports local files, internet URLs, HLS/DASH streams, and YouTube — with native HEVC hardware decoding and a built-in stream downloader.
 
 ## Features
 
 - Welcome screen with Open File and Play from URL
 - **Native HEVC hardware decoding** — H.265 video plays without transcoding (Electron 39+)
 - URL playback for `mp4`, `m3u8` (HLS), `mpd` (DASH), and YouTube links
+- **Stream downloader** — download HLS, DASH, and direct HTTP streams with a built-in download manager
 - Auto-scales video (preserves aspect ratio)
 - Dynamic ambient background (blurred, mirrored overlay)
-- Header auto-hide during playback; cursor hides in fullscreen
+- Header & cursor auto-hide during playback
 - Back button, dark/light theme toggle
 - Keyboard shortcuts for seek, volume, speed, fullscreen, open
 - Picture-in-Picture (PiP)
@@ -29,6 +30,25 @@ A lightweight, privacy-first desktop media player built on Electron + Video.js. 
 
 ### YouTube
 Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window. Playback uses the official iframe API via `videojs-youtube`. Privacy-enhanced mode (`youtube-nocookie.com`) is enabled by default.
+
+## Stream Download
+
+When playing an HLS, DASH, or direct HTTP stream, a download button (⬇) appears in the header. Click it to save the stream to disk.
+
+| Protocol | How it works |
+|----------|-------------|
+| **HLS (m3u8)** | Parses master/media playlist → downloads all TS segments in parallel (5 threads) → supports AES-128 decryption → concatenates to `.ts` |
+| **DASH (mpd)** | Parses MPD manifest → downloads fMP4 segments → concatenates to `.mp4` |
+| **Direct URL** | Standard HTTP(S) download with real-time progress |
+
+### Download Manager
+- Slide-in panel on the right side — click the download button when a download is active to open it
+- **Multiple concurrent downloads** supported
+- Each download shows: filename, progress bar, speed, and status
+- Three states: **Downloading** (cancel button), **Complete** (open-in-folder button), **Failed/Cancelled**
+- Active download count badge on the download button
+
+> **Note:** YouTube downloads are not supported. No FFmpeg or transcoding is used — downloads are pure binary segment concatenation.
 
 ## Prerequisites
 
@@ -109,6 +129,8 @@ sudo xattr -r -d com.apple.quarantine /Applications/LNU\ Player.app
 
 - **Open local file:** click "Open Media" on the welcome screen or press `O`
 - **Play URL:** paste an `http(s)` URL (MP4, `.m3u8`, YouTube, etc.) and click "Play URL" or press Enter
+- **Download stream:** when playing a remote stream, click the ⬇ button in the header to download
+- **Download manager:** click the ⬇ button again (or when downloads are active) to open the download panel
 - **Unsupported formats:** opening an incompatible file shows an error toast — no transcoding occurs
 - **Back:** click Back in the header to return to the welcome screen
 - **Theme:** click the moon/sun icon to toggle dark/light mode
@@ -135,18 +157,21 @@ sudo xattr -r -d com.apple.quarantine /Applications/LNU\ Player.app
 
 ```
 src/
-  main.js       — Electron main process: window, dialogs, local server, HEVC flag
-  preload.js    — Context bridge (window.electronAPI) for renderer
-  index.html    — UI shell: header, welcome screen, player, overlays
-  styles.css    — Theme, layout, animations
-  renderer.js   — Video.js setup, format detection, hotkeys
+  main.js        — Electron main process: window, dialogs, local server, HEVC flag, download IPC
+  preload.js     — Context bridge (window.electronAPI) for renderer
+  index.html     — UI shell: header, welcome screen, player, download manager, overlays
+  styles.css     — Theme, layout, animations, download manager panel
+  renderer.js    — Video.js setup, format detection, hotkeys, download UI
+  downloader.js  — Stream download engine: HLS, DASH, direct HTTP (no FFmpeg)
 ```
 
 ## Known Limitations
 
 - Remote HLS/DASH streams require CORS support from the server
 - YouTube playback requires an internet connection and uses the official iframe API
+- YouTube downloads are not supported (use the official YouTube app)
 - MOV/MKV files with non-H.264/H.265 codecs (e.g., AVI, WMV, FLV) are not supported and will show an error
+- DASH downloads with separate audio/video tracks save video only (no muxing without FFmpeg)
 
 ## License
 

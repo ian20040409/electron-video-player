@@ -29,4 +29,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return null;
     }
   },
+
+  // --- Stream download ---
+  startDownload: (opts) => ipcRenderer.invoke('download:start', opts),
+  cancelDownload: (id) => ipcRenderer.invoke('download:cancel', id),
+  openDownloadedFile: (filePath) => ipcRenderer.invoke('download:open-file', filePath),
+  onDownloadProgress: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('download:progress', handler);
+    return () => ipcRenderer.removeListener('download:progress', handler);
+  },
+  onDownloadComplete: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('download:complete', handler);
+    return () => ipcRenderer.removeListener('download:complete', handler);
+  },
+  onDownloadError: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on('download:error', handler);
+    return () => ipcRenderer.removeListener('download:error', handler);
+  },
 });

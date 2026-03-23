@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL, fileURLToPath } = require('url');
 const http = require('http');
+const { StreamDownloader } = require('./downloader');
 
 // Enable hardware HEVC decoding (Electron 22+)
 app.commandLine.appendSwitch('enable-features', 'PlatformHEVCDecoderSupport');
@@ -399,7 +400,7 @@ app.whenReady().then(async () => {
       "img-src 'self' data: blob: file: https://*.ytimg.com",
       "media-src 'self' blob: file: http: https:",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      "connect-src 'self' http: https:",
       "worker-src 'self' blob:",
       "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com",
       "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com",
@@ -436,6 +437,71 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('dialog:open-video', handleOpenVideoDialog);
   ipcMain.handle('local-file-url', async (_event, absolutePath) => buildServedFileUrl(absolutePath));
+
+  // --- Stream download manager (supports multiple concurrent downloads) ---
+  const activeDownloads = new Map(); // id → StreamDownloader
+  let downloadIdCounter = 0;
+
+  ipcMain.handle('download:start', async (_event, { url, type }) => {
+    try {
+      // Determine default extension and filename
+      let defaultName = 'download';
+      try {
+        const u = new URL(url);
+        const base = path.basename(u.pathname).split('?')[0];
+        if (base && base.includes('.')) defaultName = base;
+      } catch {}
+      // Remove streaming extensions
+      defaultName = defaultName.replace(/\.(m3u8|mpd)$/i, '');
+      if (!/\.\w+$/.test(defaultName)) {
+        defaultName += type === 'hls' ? '.ts' : '.mp4';
+      }
+
+      const filters = type === 'hls'
+        ? [{ name: 'MPEG-TS', extensions: ['ts'] }, { name: 'All Files', extensions: ['*'] }]
+        : [{ name: 'Video', extensions: ['mp4', 'mkv', 'webm'] }, { name: 'All Files', extensions: ['*'] }];
+
+      const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save stream as…',
+        defaultPath: defaultName,
+        filters,
+      });
+      if (canceled || !filePath) return { cancelled: true };
+
+      const id = ++downloadIdCounter;
+      const fileName = path.basename(filePath);
+      const dl = new StreamDownloader({ url, type, outputPath: filePath });
+
+      dl.on('progress', (data) => {
+        try { mainWindow?.webContents?.send('download:progress', { id, fileName, ...data }); } catch {}
+      });
+      dl.on('complete', (data) => {
+        activeDownloads.delete(id);
+        try { mainWindow?.webContents?.send('download:complete', { id, fileName, ...data }); } catch {}
+      });
+      dl.on('error', (data) => {
+        activeDownloads.delete(id);
+        try { mainWindow?.webContents?.send('download:error', { id, fileName, ...data }); } catch {}
+      });
+
+      activeDownloads.set(id, dl);
+      dl.start(); // fire-and-forget (events handle the rest)
+      return { started: true, id, fileName };
+    } catch (err) {
+      return { error: err.message || String(err) };
+    }
+  });
+
+  ipcMain.handle('download:cancel', async (_event, id) => {
+    if (id != null && activeDownloads.has(id)) {
+      activeDownloads.get(id).cancel();
+      activeDownloads.delete(id);
+    }
+  });
+
+  ipcMain.handle('download:open-file', async (_event, filePath) => {
+    if (filePath) shell.showItemInFolder(filePath);
+  });
 
   // Notify renderer when window is maximized/unmaximized
   mainWindow.on('maximize', () => {
