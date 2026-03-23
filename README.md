@@ -1,43 +1,41 @@
-# Electron Video Player
+# LNU Player
 
-A lightweight and privacy-first desktop player, powered by VideoJS, supports both local files and internet URLs (MP4, HLS/m3u8, YouTube). It offers cross-platform compatibility with Linux, Windows, and macOS.
+A lightweight, privacy-first desktop media player built on Electron + Video.js. Supports local files, internet URLs, HLS/DASH streams, and YouTube — with automatic transcoding for virtually any format via bundled FFmpeg.
 
 ## Features
 
 - Welcome screen with Open File and Play from URL
-- URL playback for `mp4`, `m3u8` (HLS), and YouTube links
-- Auto–scales video (keeps aspect; upscales low‑res sources)
+- **Universal format support** — AVI, WMV, MOV, MKV, FLAC and 20+ more via built-in FFmpeg transcoding
+- URL playback for `mp4`, `m3u8` (HLS), `mpd` (DASH), and YouTube links
+- Auto-scales video (preserves aspect ratio)
 - Dynamic ambient background (blurred, mirrored overlay)
-- Header auto‑hide during playback; reappears on interaction
-- Back button (return to welcome), theme toggle (dark/light)
+- Header auto-hide during playback; cursor hides in fullscreen
+- Back button, dark/light theme toggle
 - Keyboard shortcuts for seek, volume, speed, fullscreen, open
 - Picture-in-Picture (PiP)
+- Drag & drop files into the window
 
 ## Supported Formats
 
-### Video Formats
-- **MP4** (H.264/H.265) — Container format widely supported across platforms
-- **WebM** (VP8/VP9) — Open-source format for web browsers
-- **Ogg/Theora** — Alternative open-source format
+### Natively Played (no conversion)
+| Type | Formats |
+|------|---------|
+| Video | MP4, M4V, WebM, OGV |
+| Audio | MP3, M4A, AAC, OGG, WAV |
+| Streaming | HLS (`.m3u8`), DASH (`.mpd`), YouTube |
 
-### Streaming Protocols
-- **HTTP/HTTPS Progressive Download** — Direct MP4 file playback
-- **HLS (HTTP Live Streaming)** — `.m3u8` playlist format, widely used for adaptive bitrate streaming
-- **DASH (Dynamic Adaptive Streaming over HTTP)** — `.mpd` manifest format (with additional plugin support)
-- **YouTube** — Direct YouTube links and playlists via `videojs-youtube` plugin
+### Auto-Transcoded via FFmpeg
+These formats are automatically converted to MP4 before playback. A progress bar is shown during conversion — no user installation required (FFmpeg binary is bundled).
 
-### Audio Codecs
-- AAC (Advanced Audio Codec)
-- MP3 (MPEG-1 Layer III)
-- Vorbis (in WebM/Ogg containers)
+| Type | Formats |
+|------|---------|
+| Video | MOV, MKV, AVI, WMV, FLV, M2TS, MTS, 3GP, 3G2, ASF, VOB, DIVX, F4V, RM, RMVB, MXF |
+| Audio | FLAC, OPUS, WMA, AIFF, ALAC |
 
-**Note:** Exact codec support depends on your operating system's media engine. Most modern browsers and Electron support the formats listed above. For streams that fail to load, check browser console for CORS or unsupported codec errors.
+> **Tip:** MOV and MKV files containing H.264/AAC are remuxed (container swap only), which completes in seconds. Files with incompatible codecs are re-encoded, which takes longer depending on file size and CPU speed.
 
-### YouTube Streaming
-
-- Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window—playback uses the official iframe tech via `videojs-youtube`.
-- The app serves itself from a localhost origin so embeds pass YouTube’s security checks. No data is proxied: the iframe talks directly to YouTube.
-- Privacy‑enhanced mode (`youtube-nocookie.com`) is enabled and the ambient mirror backdrop automatically disables for iframe sources.
+### YouTube
+Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window. Playback uses the official iframe API via `videojs-youtube`. Privacy-enhanced mode (`youtube-nocookie.com`) is enabled by default.
 
 ## Prerequisites
 
@@ -50,18 +48,16 @@ A lightweight and privacy-first desktop player, powered by VideoJS, supports bot
 npm install
 ```
 
-Having trouble downloading Electron in restricted networks (ENOTFOUND on GitHub assets)? Use an Electron mirror:
+Having trouble downloading Electron on restricted networks? Use a mirror:
 
-PowerShell (one‑off in current session):
-
-```
+```powershell
 $env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
 npm cache clean --force
 Remove-Item -Recurse -Force node_modules; Remove-Item package-lock.json -ErrorAction Ignore
 npm install
 ```
 
-Or add a project `.npmrc`:
+Or add to `.npmrc`:
 
 ```
 electron_mirror=https://npmmirror.com/mirrors/electron/
@@ -75,110 +71,90 @@ npm start
 
 ## Building and Releasing
 
-This project uses a GitHub Action to automate the build and release process for Windows and macOS. The workflow is defined in `.github/workflows/build-and-release.yml`.
+This project uses GitHub Actions to automate builds for Windows and macOS. The workflow is defined in `.github/workflows/build-and-release.yml`.
 
-You can trigger a new release in two ways:
+### Tag-based Release
+Push a version tag (e.g. `v1.2.0`) to trigger an automated build that produces installers for all platforms and attaches them to a GitHub Release.
 
-### GitHub Action
-- Build the application for all target platforms (macOS arm64/x64, Windows arm64/ia32/x64).
-- Create a new GitHub Release with the same name as your tag.
-- Attach all the generated installers (`.dmg`, `.zip`, `.exe`) to the release.
-
-### 2. Manual Trigger
-
-This method is useful for creating pre-releases or testing the build process without creating a public release immediately.
-
-1.  Navigate to the **Actions** tab in the GitHub repository.
-2.  Select the **Build and Release** workflow from the list.
-3.  Click the **Run workflow** dropdown button.
-4.  Enter the **tag** you want to use for the release (e.g., `v1.0.0-beta`).
-5.  Choose whether to create the release as a **draft** (defaults to `true`).
-6.  Click **Run workflow**.
-
-The workflow will execute the same build and release steps, but the resulting GitHub Release will be a draft if you selected that option, allowing you to review it before publishing.
-
+### Manual Trigger
+1. Go to the **Actions** tab in the repository
+2. Select **Build and Release**
+3. Click **Run workflow**, enter a tag name and choose draft or public
+4. Click **Run workflow**
 
 ## Download and Install
 
 ### macOS
-
-1. Download the latest `.dmg` file from [Releases](https://github.com/ian20040409/electron-video-player/releases)
-2. Open the `.dmg` file and drag the app to the Applications folder
-3. First run may show a security warning. Open **System Preferences > Security & Privacy** and click "Open Anyway"
-4. If you encounter "cannot be opened because the developer cannot be verified" or quarantine issues, run the following command in Terminal:
-
+1. Download the latest `.dmg` from [Releases](https://github.com/ian20040409/electron-video-player/releases)
+2. Open the `.dmg` and drag the app to Applications
+3. If you see a security warning, go to **System Preferences → Security & Privacy → Open Anyway**
+4. Or remove quarantine via Terminal:
 ```bash
 sudo xattr -r -d com.apple.quarantine /Applications/LNU\ Player.app
 ```
 
-Then you can launch the app normally.
-
 ### Windows
-
 1. Download the latest `.exe` installer from [Releases](https://github.com/ian20040409/electron-video-player/releases)
-2. Run the installer and follow the on-screen instructions
-3. The app will be installed to your Program Files directory
-4. A shortcut will be created on your desktop and Start Menu
+2. Run the installer and follow the prompts
 
 ## Screenshots
 
-## Main Menu
-
+### Main Menu
 ![Main Menu](https://github.com/ian20040409/electron-video-player/blob/main/docs/pics/Main%20Menu.png?raw=true)
 
 ---
 
 ### Local file
-
 ![Local file](https://github.com/ian20040409/electron-video-player/blob/main/docs/pics/Local%20file.png?raw=true)
-
 
 ---
 
 ### YouTube embedded video player
-
 ![YouTube embedded video player](https://github.com/ian20040409/electron-video-player/blob/main/docs/pics/YouTube%20embedded%20video%20player.png?raw=true)
-
 
 ## Usage
 
-- Open local file: click “Open Video” on the welcome screen or press `O`.
-- Play URL: paste an `http(s)` URL (MP4, `.m3u8`, or a YouTube link) and click “Play URL” or press Enter. On the welcome screen, press `L` to focus the URL box.
-- Back: click Back in the header to return to welcome.
-- Theme: click the moon/sun icon to toggle dark/light.
-- Maximize: when the window is maximized, the player is slightly reduced to showcase more ambient glow.
-
-Notes on streaming:
-- Remote servers must allow CORS for the manifest and segment requests; otherwise playback may fail. Check DevTools network errors if a stream does not load.
-- YouTube playback is powered by the official iframe API (via `videojs-youtube`). The app now serves its UI from a local HTTP origin so YouTube embeds initialise correctly, disables the ambient mirror backdrop for those sources, and still respects the same CSP.
+- **Open local file:** click "Open Media" on the welcome screen or press `O`
+- **Play URL:** paste an `http(s)` URL (MP4, `.m3u8`, YouTube, etc.) and click "Play URL" or press Enter
+- **Unsupported formats:** open or drop any file — if transcoding is needed, a progress overlay appears automatically
+- **Back:** click Back in the header to return to the welcome screen
+- **Theme:** click the moon/sun icon to toggle dark/light mode
 
 ## Keyboard Shortcuts
 
-- Space / `K`: Play / Pause
-- Arrow Right / Left: +5s / −5s (Shift: 10s, Ctrl/Cmd: 30s)
-- Arrow Up / Down: Volume +5% / −5%
-- `M`: Mute / Unmute
-- `[` / `]` / `+` / `-`: Speed down / up
-- `0`: Reset speed to 1.0
-- `F`: Fullscreen toggle
-- `O`: Open local file dialog
-- `L` (welcome screen): Focus URL input
-- `1`..`9`: Jump to 10%..90%
-- Double‑click on player: Fullscreen toggle
+| Key | Action |
+|-----|--------|
+| `Space` / `K` | Play / Pause |
+| `→` / `←` | Seek +5s / −5s |
+| `Shift` + `→` / `←` | Seek +10s / −10s |
+| `Ctrl` + `→` / `←` | Seek +30s / −30s |
+| `↑` / `↓` | Volume +5% / −5% |
+| `M` | Mute / Unmute |
+| `[` / `]` or `+` / `-` | Speed down / up (0.25× step) |
+| `0` | Reset speed to 1.0× |
+| `F` | Toggle fullscreen |
+| `O` | Open file dialog |
+| `L` | Focus URL input (welcome screen) |
+| `1`–`9` | Jump to 10%–90% of video |
+| Double-click | Toggle fullscreen |
 
 ## Project Structure
 
-- `src/main.js` — Electron main process (window, dialogs, menu removal)
-- `src/preload.js` — Safe bridge (`window.electronAPI`) for renderer
-- `src/index.html` — UI shell (welcome, header, player)
-- `src/styles.css` — Theme, layout, player sizing, ambient overlay
-- `src/renderer.js` — Video.js setup, UI logic, hotkeys, URL playback
+```
+src/
+  main.js       — Electron main process: window, dialogs, local server, FFmpeg IPC
+  preload.js    — Context bridge (window.electronAPI) for renderer
+  index.html    — UI shell: header, welcome screen, player, overlays
+  styles.css    — Theme, layout, animations, transcode overlay
+  renderer.js   — Video.js setup, format detection, FFmpeg flow, hotkeys
+```
 
-## Known Limitations / Notes
+## Known Limitations
 
-- Drag & drop is disabled by request; use the Open button or URL field.
-- Some HLS streams require CORS support from the server and may not play without it.
-- The ambient effect uses a mirrored hidden video overlay; if you prefer a subtler look, we can reduce opacity/blur.
+- Remote HLS/DASH streams require CORS support from the server
+- YouTube playback requires an internet connection and uses the official iframe API
+- FFmpeg transcoding stores a temporary MP4 in the system temp directory; it is deleted when you press Back or close the app
+- `fluent-ffmpeg` is deprecated upstream but remains functional
 
 ## License
 
