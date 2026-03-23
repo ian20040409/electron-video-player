@@ -28,7 +28,7 @@ A lightweight, privacy-first desktop media player built on Electron + Video.js. 
 
 > **Note:** MOV and MKV files play natively when they contain H.264 or H.265 (HEVC) video. Files encoded with unsupported codecs (e.g., AVI/WMV with older codecs) will show an error — no transcoding is performed.
 
-> **HEVC on Windows:** Chromium uses Windows MediaFoundation for HEVC decoding. You must install **[HEVC Video Extensions](https://apps.microsoft.com/detail/9nmzlz57r3t7)** from Microsoft Store ($0.99) to play H.265 files (e.g., iPhone 4K MOV). macOS supports HEVC natively via VideoToolbox — no extra installation needed.
+> **HEVC on Windows:** Install **[HEVC Video Extensions](https://apps.microsoft.com/detail/9nmzlz57r3t7)** from Microsoft Store ($0.99) to enable H.265 hardware decoding (e.g., iPhone 4K MOV). macOS supports HEVC natively — no extra installation needed.
 
 ### YouTube
 Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window. Playback uses the official iframe API via `videojs-youtube`. Privacy-enhanced mode (`youtube-nocookie.com`) is enabled by default.

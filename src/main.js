@@ -47,7 +47,7 @@ const MIME_BY_EXT = {
   '.aac': 'audio/aac',
   '.ogg': 'audio/ogg',
   '.wav': 'audio/wav',
-  '.mov': 'video/quicktime',
+  '.mov': 'video/mp4',
   '.mkv': 'video/x-matroska',
   '.flac': 'audio/flac',
   '.opus': 'audio/ogg',
