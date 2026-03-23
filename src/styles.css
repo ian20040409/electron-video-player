@@ -1035,7 +1035,7 @@ body.header-hidden * {
   transition: transform 280ms cubic-bezier(0.34, 1.2, 0.64, 1), opacity 280ms ease;
   opacity: 0;
   pointer-events: none;
-  max-width: min(90vw, 480px);
+  max-width: min(92vw, 600px);
 }
 .error-toast.visible {
   transform: translateX(-50%) translateY(0);

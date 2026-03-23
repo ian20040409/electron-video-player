@@ -5,8 +5,13 @@ const { pathToFileURL, fileURLToPath } = require('url');
 const http = require('http');
 const { StreamDownloader } = require('./downloader');
 
-// Enable hardware HEVC decoding (Electron 22+)
-app.commandLine.appendSwitch('enable-features', 'PlatformHEVCDecoderSupport');
+// Enable hardware HEVC decoding (Electron 22+ / Chromium 107+)
+// On Windows this uses MediaFoundation — requires "HEVC Video Extensions" from Microsoft Store
+// On macOS this uses VideoToolbox — supported natively on macOS 10.13+
+app.commandLine.appendSwitch('enable-features',
+  'PlatformHEVCDecoderSupport,PlatformHEVCEncoderSupport');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
 
 // Keep a global reference to the main window to avoid GC closing it.
 let mainWindow;

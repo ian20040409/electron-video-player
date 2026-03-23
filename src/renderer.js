@@ -84,23 +84,35 @@ function showError(message) {
   errorToast.setAttribute('aria-hidden', 'false');
   errorToast.classList.add('visible');
   clearTimeout(errorToastTimer);
+  const duration = message.length > 80 ? 7000 : 4500;
   errorToastTimer = setTimeout(() => {
     errorToast.classList.remove('visible');
     errorToast.setAttribute('aria-hidden', 'true');
-  }, 4500);
+  }, duration);
 }
 
 player.on('error', () => {
   try {
     const err = player.error();
     const code = err && err.code;
-    const messages = {
-      1: 'Playback aborted.',
-      2: 'Network error — check your connection or URL.',
-      3: 'Decoding error — the file may be corrupted.',
-      4: 'Unsupported format or source not found.',
-    };
-    const msg = (code && messages[code]) || (err && err.message) || 'Failed to load media.';
+    const currentSrc = player.currentSource?.()?.src || '';
+    const fileName = fileNameLabel?.textContent || '';
+    const isHevcFile = /\.(mov|mkv|m2ts|mts)$/i.test(fileName) || /\.(mov|mkv|m2ts|mts)/i.test(currentSrc);
+
+    let msg;
+    if (code === 3 && isHevcFile) {
+      msg = 'HEVC decoding failed — install "HEVC Video Extensions" from Microsoft Store ($0.99) to enable H.265 playback.';
+    } else if (code === 4 && isHevcFile) {
+      msg = 'Cannot play this HEVC file — install "HEVC Video Extensions" from Microsoft Store to enable H.265 support.';
+    } else {
+      const messages = {
+        1: 'Playback aborted.',
+        2: 'Network error — check your connection or URL.',
+        3: 'Decoding error — the file may be corrupted or uses an unsupported codec.',
+        4: 'Unsupported format or source not found.',
+      };
+      msg = (code && messages[code]) || (err && err.message) || 'Failed to load media.';
+    }
     showError(msg);
   } catch {
     showError('Failed to load media.');
