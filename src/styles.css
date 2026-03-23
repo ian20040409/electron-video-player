@@ -798,6 +798,58 @@ body.is-fullscreen.header-hidden * {
   cursor: none !important;
 }
 
+/* Transcode progress overlay */
+.transcode-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+}
+body.is-transcoding .transcode-overlay { display: flex; }
+.transcode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+.transcode-spinner {
+  animation: transcode-spin 1s linear infinite;
+}
+@keyframes transcode-spin {
+  to { transform: rotate(360deg); }
+}
+.transcode-title {
+  font-size: 1rem;
+  color: var(--muted);
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.transcode-bar-wrap {
+  width: 280px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.transcode-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.transcode-pct {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Error toast notification */
 .error-toast {
   position: fixed;
