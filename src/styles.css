@@ -746,9 +746,35 @@ body::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
 /* Hide welcome once a video is loaded */
 body.has-video #welcome { display: none; }
 
-/* Back button (in header actions) */
-.back-btn { gap: 6px; align-items: center; }
-.back-btn .back-label { font-size: 0.95rem; }
+/* Back button (in header) */
+.back-btn {
+  gap: 5px;
+  align-items: center;
+  padding: 0.45rem 1rem 0.45rem 0.7rem;
+  border-radius: 999px;
+  border-color: transparent;
+  background: rgba(127, 142, 165, 0.08);
+  box-shadow: none;
+  font-weight: 500;
+  color: var(--muted);
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
+}
+.back-btn:hover,
+.back-btn:focus-visible {
+  background: rgba(79, 140, 255, 0.14);
+  color: var(--text);
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(79, 140, 255, 0.18);
+  transform: translateX(-2px);
+}
+.back-btn:active {
+  background: rgba(79, 140, 255, 0.2);
+  transform: translateX(0) scale(0.97);
+  box-shadow: none;
+}
+.back-btn .back-label { font-size: 0.9rem; letter-spacing: 0.01em; }
+.back-btn svg { transition: transform 0.2s ease; }
+.back-btn:hover svg { transform: translateX(-2px); }
 #back-btn { display: none; }
 body.has-video #back-btn { display: inline-flex; }
 
@@ -769,6 +795,15 @@ body.is-fullscreen.header-hidden {
   cursor: none;
 }
 body.is-fullscreen.header-hidden * {
+  cursor: none !important;
+}
+/* Video.js fullscreen uses Fullscreen API on the .video-js element,
+   which creates a top-layer that body styles don't reach.
+   Target the fullscreen player directly via the cursor-hidden class. */
+.video-js.vjs-fullscreen.cursor-hidden,
+.video-js.vjs-fullscreen.cursor-hidden *,
+.video-js.vjs-fullscreen.cursor-hidden .vjs-control-bar,
+.video-js.vjs-fullscreen.cursor-hidden .vjs-tech {
   cursor: none !important;
 }
 

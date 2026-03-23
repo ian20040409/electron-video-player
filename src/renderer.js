@@ -481,11 +481,32 @@ try {
   }
 } catch {}
 
-// --- Header auto-hide while playing ---
+// --- Header auto-hide & cursor hide while playing ---
 let headerHideTimer;
+let cursorHideTimer;
+const playerEl = player.el();
+
+function revealCursor() {
+  clearTimeout(cursorHideTimer);
+  if (playerEl) playerEl.classList.remove('cursor-hidden');
+  scheduleCursorHide();
+}
+
+function scheduleCursorHide() {
+  clearTimeout(cursorHideTimer);
+  const isFs = player.isFullscreen && player.isFullscreen();
+  const shouldHide = isFs && document.body.classList.contains('has-video') && !player.paused();
+  if (!shouldHide) return;
+  cursorHideTimer = setTimeout(() => {
+    const stillFs = player.isFullscreen && player.isFullscreen();
+    const stillHide = stillFs && document.body.classList.contains('has-video') && !player.paused();
+    if (stillHide && playerEl) playerEl.classList.add('cursor-hidden');
+  }, 2000);
+}
 
 function revealHeader() {
   document.body.classList.remove('header-hidden');
+  revealCursor();
   scheduleHeaderHide();
 }
 
@@ -500,13 +521,22 @@ function scheduleHeaderHide() {
   }, 1800);
 }
 
-// Show header on user interaction
+// Show header/cursor on user interaction
 ['mousemove', 'keydown', 'pointerdown', 'touchstart'].forEach((evt) => {
   window.addEventListener(evt, () => {
     if (!document.body.classList.contains('has-video')) return;
     revealHeader();
   }, { passive: true });
 });
+
+// Also listen on the player element for mousemove in fullscreen
+// (fullscreen top-layer may not bubble to window)
+if (playerEl) {
+  playerEl.addEventListener('mousemove', () => {
+    if (!document.body.classList.contains('has-video')) return;
+    revealHeader();
+  }, { passive: true });
+}
 
 // Volume persistence
 try {
@@ -524,17 +554,20 @@ player.on('volumechange', () => {
 });
 
 // Tie into player state
-player.on('play', () => { scheduleHeaderHide(); ambientVideo?.play?.().catch(()=>{}); });
-player.on('pause', () => { document.body.classList.remove('header-hidden'); ambientVideo?.pause?.(); });
-player.on('ended', () => { document.body.classList.remove('header-hidden'); ambientVideo?.pause?.(); });
+player.on('play', () => { scheduleHeaderHide(); scheduleCursorHide(); ambientVideo?.play?.().catch(()=>{}); });
+player.on('pause', () => { document.body.classList.remove('header-hidden'); revealCursor(); ambientVideo?.pause?.(); });
+player.on('ended', () => { document.body.classList.remove('header-hidden'); revealCursor(); ambientVideo?.pause?.(); });
 
 player.on('fullscreenchange', () => {
   const isFs = player.isFullscreen && player.isFullscreen();
   document.body.classList.toggle('is-fullscreen', !!isFs);
   if (!isFs) {
     document.body.classList.remove('header-hidden');
+    if (playerEl) playerEl.classList.remove('cursor-hidden');
+    clearTimeout(cursorHideTimer);
   }
   scheduleHeaderHide();
+  scheduleCursorHide();
 });
 
 // --- Ambient overlay: mirror the playing video with blur
