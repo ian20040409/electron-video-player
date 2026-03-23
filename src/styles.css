@@ -7,7 +7,7 @@
   --primary-600: #3a73e6;
   --border: #2a3038;
   --shadow: rgba(0, 0, 0, 0.35);
-  --header-h: 68px;
+  --header-h: 50px;
   --header-bg: rgba(23, 27, 33, 0.55);
   --welcome-card-hover-bg: rgba(30, 36, 46, 0.92);
   --welcome-card-hover-shadow: 0 28px 70px rgba(79, 140, 255, 0.32);
@@ -287,15 +287,6 @@ main {
   box-sizing: border-box;
 }
 
-/* When window is maximized, make player smaller and centered to showcase ambient */
-body.is-maximized main { display: grid; place-items: center; }
-body.is-maximized .player-container {
-  width: 88vw;
-  height: 80vh;
-  max-width: 1600px;
-  max-height: calc(100vh - var(--header-h) - 32px);
-  margin: 0 auto;
-}
 
 /* Ambient blurred video overlay */
 .ambient-video {
