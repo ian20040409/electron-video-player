@@ -1,4 +1,4 @@
-﻿const mimeByExtension = {
+const mimeByExtension = {
   mp4: 'video/mp4',
   m4v: 'video/mp4',
   webm: 'video/webm',
@@ -8,16 +8,11 @@
   aac: 'audio/aac',
   ogg: 'audio/ogg',
   wav: 'audio/wav',
+  mov: 'video/quicktime',
+  mkv: 'video/x-matroska',
+  flac: 'audio/flac',
+  opus: 'audio/ogg',
 };
-
-// Formats Chromium can play natively — everything else goes through ffmpeg
-const NATIVE_EXTS = new Set(['mp4','m4v','webm','ogv','mp3','m4a','aac','ogg','wav','m3u8','mpd']);
-
-function needsTranscode(fileName) {
-  if (!fileName) return false;
-  const ext = fileName.split('.').pop().toLowerCase();
-  return ext && !NATIVE_EXTS.has(ext);
-}
 
 const fileNameLabel = document.getElementById('file-name');
 const welcomeOpenButton = document.getElementById('welcome-open-file');
@@ -29,15 +24,7 @@ const backBtn = document.getElementById('back-btn');
 const headerEl = document.querySelector('.app-header');
 const ambientVideo = document.getElementById('ambient-video');
 const themeToggle = document.getElementById('theme-toggle');
-const transcodeOverlay = document.getElementById('transcode-overlay');
-const transcodeBar = document.getElementById('transcode-bar');
-const transcodePct = document.getElementById('transcode-pct');
-const transcodeLabel = document.getElementById('transcode-label');
 
-// Track active transcode job for cleanup
-let currentTmpFile = null;
-let currentJobId = null;
-let transcodeProgressUnsubscribe = null;
 const appOrigin = (() => {
   try {
     if (window?.location?.protocol?.startsWith('http')) {
@@ -227,7 +214,7 @@ function formatSourceLabel(source, fallback) {
   return fallback || source.src || 'Unknown source';
 }
 
-function loadVideoJs({ fileUrl, fileName }) {
+function loadVideo({ fileUrl, fileName }) {
   fileNameLabel.textContent = fileName || 'Unknown file';
 
   teardownAmbient();
@@ -255,99 +242,6 @@ function loadVideoJs({ fileUrl, fileName }) {
   // Update OS window title
   if (window.electronAPI?.setTitle) {
     window.electronAPI.setTitle(`${fileName} - LNU Player`);
-  }
-}
-
-function showTranscodeOverlay(fileName) {
-  if (!transcodeOverlay) return;
-  if (transcodeLabel) transcodeLabel.textContent = `Converting "${fileName}"…`;
-  if (transcodeBar) transcodeBar.style.width = '0%';
-  if (transcodePct) transcodePct.textContent = '0%';
-  transcodeOverlay.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('is-transcoding');
-}
-
-function hideTranscodeOverlay() {
-  if (!transcodeOverlay) return;
-  transcodeOverlay.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('is-transcoding');
-}
-
-function updateTranscodeProgress(percent) {
-  const pct = Math.min(100, Math.max(0, percent || 0));
-  if (transcodeBar) transcodeBar.style.width = `${pct}%`;
-  if (transcodePct) transcodePct.textContent = `${pct}%`;
-}
-
-async function loadWithFfmpeg(localPath, fileName) {
-  // Clean up any previous transcode
-  cleanupTmpFile();
-
-  fileNameLabel.textContent = fileName || 'Unknown file';
-  showTranscodeOverlay(fileName);
-  document.body.classList.add('has-video');
-  if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'true');
-  if (window.electronAPI?.setTitle) {
-    window.electronAPI.setTitle(`Converting ${fileName}… - LNU Player`);
-  }
-
-  // Subscribe to progress events
-  if (window.electronAPI?.ffmpeg?.onProgress) {
-    transcodeProgressUnsubscribe = window.electronAPI.ffmpeg.onProgress(({ jobId, percent }) => {
-      if (jobId === currentJobId) updateTranscodeProgress(percent);
-    });
-  }
-
-  try {
-    const result = await window.electronAPI.ffmpeg.transcode(localPath);
-    currentJobId = result.jobId;
-    currentTmpFile = result.tmpFile;
-
-    hideTranscodeOverlay();
-
-    // Play the transcoded file via video.js
-    teardownAmbient();
-    player.src({ src: result.servedUrl, type: 'video/mp4' });
-    player.ready(() => {
-      player.play().catch(() => {});
-      try { player.one('loadedmetadata', () => { try { player.resize(); } catch {} }); } catch {}
-    });
-    rewireAmbientWhenReady();
-    scheduleHeaderHide();
-
-    if (window.electronAPI?.setTitle) {
-      window.electronAPI.setTitle(`${fileName} - LNU Player`);
-    }
-  } catch (err) {
-    hideTranscodeOverlay();
-    document.body.classList.remove('has-video');
-    if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'false');
-    if (window.electronAPI?.setTitle) window.electronAPI.setTitle('LNU Player');
-    showError(`Could not convert "${fileName}": ${err?.message || 'Unknown error'}`);
-  } finally {
-    if (transcodeProgressUnsubscribe) {
-      try { transcodeProgressUnsubscribe(); } catch {}
-      transcodeProgressUnsubscribe = null;
-    }
-  }
-}
-
-function cleanupTmpFile() {
-  if (currentTmpFile && window.electronAPI?.ffmpeg?.cleanup) {
-    try { window.electronAPI.ffmpeg.cleanup(currentTmpFile); } catch {}
-    currentTmpFile = null;
-  }
-  if (currentJobId && window.electronAPI?.ffmpeg?.cancel) {
-    try { window.electronAPI.ffmpeg.cancel(currentJobId); } catch {}
-    currentJobId = null;
-  }
-}
-
-function loadVideo({ fileUrl, fileName, localPath }) {
-  if (needsTranscode(fileName) && localPath) {
-    loadWithFfmpeg(localPath, fileName);
-  } else {
-    loadVideoJs({ fileUrl, fileName });
   }
 }
 
@@ -438,8 +332,6 @@ if (backBtn) {
   backBtn.addEventListener('click', () => {
     try { player.pause(); } catch {}
     teardownAmbient();
-    hideTranscodeOverlay();
-    cleanupTmpFile();
     document.body.classList.remove('has-video');
     document.body.classList.remove('header-hidden');
     if (welcomeSection) welcomeSection.setAttribute('aria-hidden', 'false');
@@ -480,7 +372,7 @@ themeToggle.addEventListener('click', () => {
 
 // Ambient intensity: maximum by default (CSS handles fixed opacity)
 
-// --- Drag and Drop --- 
+// --- Drag and Drop ---
 const dragOverlay = document.getElementById('drag-overlay');
 
 async function processDropEvent(e) {

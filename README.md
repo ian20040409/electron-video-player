@@ -1,11 +1,11 @@
 # LNU Player
 
-A lightweight, privacy-first desktop media player built on Electron + Video.js. Supports local files, internet URLs, HLS/DASH streams, and YouTube — with automatic transcoding for virtually any format via bundled FFmpeg.
+A lightweight, privacy-first desktop media player built on Electron + Video.js. Supports local files, internet URLs, HLS/DASH streams, and YouTube — with native HEVC hardware decoding for H.265 content.
 
 ## Features
 
 - Welcome screen with Open File and Play from URL
-- **Universal format support** — AVI, WMV, MOV, MKV, FLAC and 20+ more via built-in FFmpeg transcoding
+- **Native HEVC hardware decoding** — H.265 video plays without transcoding (Electron 39+)
 - URL playback for `mp4`, `m3u8` (HLS), `mpd` (DASH), and YouTube links
 - Auto-scales video (preserves aspect ratio)
 - Dynamic ambient background (blurred, mirrored overlay)
@@ -17,22 +17,15 @@ A lightweight, privacy-first desktop media player built on Electron + Video.js. 
 
 ## Supported Formats
 
-### Natively Played (no conversion)
+### Natively Played
 | Type | Formats |
 |------|---------|
 | Video | MP4, M4V, WebM, OGV |
-| Audio | MP3, M4A, AAC, OGG, WAV |
+| Video (H.264/H.265) | MOV, MKV, M2TS, MTS |
+| Audio | MP3, M4A, AAC, OGG, WAV, FLAC, OPUS |
 | Streaming | HLS (`.m3u8`), DASH (`.mpd`), YouTube |
 
-### Auto-Transcoded via FFmpeg
-These formats are automatically converted to MP4 before playback. A progress bar is shown during conversion — no user installation required (FFmpeg binary is bundled).
-
-| Type | Formats |
-|------|---------|
-| Video | MOV, MKV, AVI, WMV, FLV, M2TS, MTS, 3GP, 3G2, ASF, VOB, DIVX, F4V, RM, RMVB, MXF |
-| Audio | FLAC, OPUS, WMA, AIFF, ALAC |
-
-> **Tip:** MOV and MKV files containing H.264/AAC are remuxed (container swap only), which completes in seconds. Files with incompatible codecs are re-encoded, which takes longer depending on file size and CPU speed.
+> **Note:** MOV and MKV files play natively when they contain H.264 or H.265 (HEVC) video. Files encoded with unsupported codecs (e.g., AVI/WMV with older codecs) will show an error — no transcoding is performed.
 
 ### YouTube
 Paste any `youtube.com`, `youtu.be`, or playlist link into the URL box or drop it into the window. Playback uses the official iframe API via `videojs-youtube`. Privacy-enhanced mode (`youtube-nocookie.com`) is enabled by default.
@@ -116,7 +109,7 @@ sudo xattr -r -d com.apple.quarantine /Applications/LNU\ Player.app
 
 - **Open local file:** click "Open Media" on the welcome screen or press `O`
 - **Play URL:** paste an `http(s)` URL (MP4, `.m3u8`, YouTube, etc.) and click "Play URL" or press Enter
-- **Unsupported formats:** open or drop any file — if transcoding is needed, a progress overlay appears automatically
+- **Unsupported formats:** opening an incompatible file shows an error toast — no transcoding occurs
 - **Back:** click Back in the header to return to the welcome screen
 - **Theme:** click the moon/sun icon to toggle dark/light mode
 
@@ -142,19 +135,18 @@ sudo xattr -r -d com.apple.quarantine /Applications/LNU\ Player.app
 
 ```
 src/
-  main.js       — Electron main process: window, dialogs, local server, FFmpeg IPC
+  main.js       — Electron main process: window, dialogs, local server, HEVC flag
   preload.js    — Context bridge (window.electronAPI) for renderer
   index.html    — UI shell: header, welcome screen, player, overlays
-  styles.css    — Theme, layout, animations, transcode overlay
-  renderer.js   — Video.js setup, format detection, FFmpeg flow, hotkeys
+  styles.css    — Theme, layout, animations
+  renderer.js   — Video.js setup, format detection, hotkeys
 ```
 
 ## Known Limitations
 
 - Remote HLS/DASH streams require CORS support from the server
 - YouTube playback requires an internet connection and uses the official iframe API
-- FFmpeg transcoding stores a temporary MP4 in the system temp directory; it is deleted when you press Back or close the app
-- `fluent-ffmpeg` is deprecated upstream but remains functional
+- MOV/MKV files with non-H.264/H.265 codecs (e.g., AVI, WMV, FLV) are not supported and will show an error
 
 ## License
 

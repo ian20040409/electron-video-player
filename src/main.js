@@ -1,18 +1,11 @@
 const { app, BrowserWindow, dialog, ipcMain, shell, Menu, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
-const crypto = require('crypto');
 const { pathToFileURL, fileURLToPath } = require('url');
 const http = require('http');
-const { spawn } = require('child_process');
 
-let ffmpegBin;
-try {
-  ffmpegBin = require('ffmpeg-static');
-} catch {
-  ffmpegBin = null;
-}
+// Enable hardware HEVC decoding (Electron 22+)
+app.commandLine.appendSwitch('enable-features', 'PlatformHEVCDecoderSupport');
 
 // Keep a global reference to the main window to avoid GC closing it.
 let mainWindow;
@@ -48,6 +41,13 @@ const MIME_BY_EXT = {
   '.aac': 'audio/aac',
   '.ogg': 'audio/ogg',
   '.wav': 'audio/wav',
+  '.mov': 'video/quicktime',
+  '.mkv': 'video/x-matroska',
+  '.flac': 'audio/flac',
+  '.opus': 'audio/ogg',
+  '.wma': 'audio/x-ms-wma',
+  '.aiff': 'audio/aiff',
+  '.aif': 'audio/aiff',
 };
 
 function guessMimeForPath(filePath) {
@@ -186,20 +186,12 @@ async function ensureStaticServer() {
   return staticServerPort;
 }
 
-// Formats Chromium can play natively (no transcoding needed)
-const NATIVE_MEDIA_EXTS = new Set([
-  'mp4', 'm4v', 'webm', 'ogv', 'mp3', 'm4a', 'aac', 'ogg', 'wav',
-]);
-
-// All formats the app accepts (native + transcoded via ffmpeg)
+// All formats the app accepts (native Chromium playback; unsupported formats show an error)
 const SUPPORTED_MEDIA_EXTS = new Set([
-  // Native
+  // Confirmed native
   'mp4', 'm4v', 'webm', 'ogv', 'mp3', 'm4a', 'aac', 'ogg', 'wav',
-  // Video (transcoded)
-  'mov', 'mkv', 'avi', 'wmv', 'flv', 'm2ts', 'mts', 'ts', '3gp', '3g2',
-  'asf', 'vob', 'divx', 'f4v', 'rm', 'rmvb', 'mxf',
-  // Audio (transcoded)
-  'flac', 'opus', 'wma', 'aiff', 'aif', 'alac',
+  // Native attempt (HEVC/H.264 content plays; other codecs will show error)
+  'mov', 'mkv', 'flac', 'opus', 'm2ts', 'mts',
 ]);
 
 function isSupportedMediaFile(p) {
@@ -445,104 +437,6 @@ app.whenReady().then(async () => {
   ipcMain.handle('dialog:open-video', handleOpenVideoDialog);
   ipcMain.handle('local-file-url', async (_event, absolutePath) => buildServedFileUrl(absolutePath));
 
-  // --- FFmpeg transcode IPC ---
-  const activeFfmpegProcs = new Map(); // jobId -> child process
-
-  ipcMain.handle('ffmpeg:transcode', async (event, inputPath) => {
-    if (!ffmpegBin) throw new Error('ffmpeg-static not available');
-    if (!inputPath || typeof inputPath !== 'string' || !fs.existsSync(inputPath)) {
-      throw new Error('Invalid input path');
-    }
-
-    const jobId = crypto.randomUUID();
-    const tmpFile = path.join(os.tmpdir(), `lnu-${jobId}.mp4`);
-
-    // Try three strategies in order: copy → video-copy/audio-transcode → full transcode
-    const strategies = [
-      ['-c', 'copy'],
-      ['-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k'],
-      ['-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'aac', '-b:a', '192k'],
-    ];
-
-    for (const codecArgs of strategies) {
-      try {
-        await new Promise((resolve, reject) => {
-          const args = [
-            '-y', '-i', inputPath,
-            ...codecArgs,
-            '-movflags', '+faststart',
-            '-f', 'mp4',
-            tmpFile,
-          ];
-          const proc = spawn(ffmpegBin, args);
-          activeFfmpegProcs.set(jobId, proc);
-
-          let duration = 0;
-          let lastPct = 0;
-          proc.stderr.on('data', (chunk) => {
-            const text = chunk.toString();
-            // Parse duration
-            const durMatch = text.match(/Duration:\s*(\d+):(\d+):(\d+\.\d+)/);
-            if (durMatch) {
-              duration = parseInt(durMatch[1]) * 3600 + parseInt(durMatch[2]) * 60 + parseFloat(durMatch[3]);
-            }
-            // Parse current time for progress
-            const timeMatch = text.match(/time=(\d+):(\d+):(\d+\.\d+)/);
-            if (timeMatch && duration > 0) {
-              const current = parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseFloat(timeMatch[3]);
-              const pct = Math.min(99, Math.round((current / duration) * 100));
-              if (pct !== lastPct) {
-                lastPct = pct;
-                try { event.sender.send('ffmpeg:progress', { jobId, percent: pct }); } catch {}
-              }
-            }
-          });
-
-          proc.on('close', (code) => {
-            activeFfmpegProcs.delete(jobId);
-            if (code === 0) {
-              try { event.sender.send('ffmpeg:progress', { jobId, percent: 100 }); } catch {}
-              resolve();
-            } else {
-              try { fs.unlinkSync(tmpFile); } catch {}
-              reject(new Error(`ffmpeg exited with code ${code}`));
-            }
-          });
-
-          proc.on('error', (err) => {
-            activeFfmpegProcs.delete(jobId);
-            try { fs.unlinkSync(tmpFile); } catch {}
-            reject(err);
-          });
-        });
-
-        // Success — return served URL + job info
-        const servedUrl = await buildServedFileUrl(tmpFile);
-        return { jobId, tmpFile, servedUrl };
-      } catch {
-        // Try next strategy
-        try { fs.unlinkSync(tmpFile); } catch {}
-      }
-    }
-
-    throw new Error('All transcode strategies failed for: ' + path.basename(inputPath));
-  });
-
-  ipcMain.handle('ffmpeg:cancel', (_event, jobId) => {
-    const proc = activeFfmpegProcs.get(jobId);
-    if (proc) { try { proc.kill('SIGKILL'); } catch {} }
-  });
-
-  ipcMain.on('ffmpeg:cleanup', (_event, tmpFile) => {
-    try { if (tmpFile && path.isAbsolute(tmpFile)) fs.unlinkSync(tmpFile); } catch {}
-  });
-
-  // Clean up all tmp files on exit
-  app.on('will-quit', () => {
-    for (const proc of activeFfmpegProcs.values()) {
-      try { proc.kill('SIGKILL'); } catch {}
-    }
-  });
   // Notify renderer when window is maximized/unmaximized
   mainWindow.on('maximize', () => {
     if (mainWindow) mainWindow.webContents.send('window:maximized', true);
